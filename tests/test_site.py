@@ -33,7 +33,7 @@ HARNESS = ROOT / "tests" / "harness.html"
 LIVE_URL = "https://esp32.ydtgo.top/"
 
 SRC = SITE.read_text(encoding="utf-8")
-EXPECT_SECTIONS = ["ai", "chips", "env", "wizard", "path", "video",
+EXPECT_SECTIONS = ["ai", "chips", "env", "wizard", "path", "labs", "video",
                    "cases", "code", "res", "buy", "pit", "gloss", "src"]
 
 CHROME_CANDIDATES = [
@@ -107,9 +107,29 @@ def parse_stack():
 
 
 def get_i18n():
-    m = re.search(r"window\.I18N\s*=\s*(\{.*?\});?\s*</script>", SRC, re.S)
-    assert m, "window.I18N 字典未找到"
-    return json.loads(m.group(1))
+    """括号计数提取 window.I18N 的 JSON——字典里可能含 '};' 序列，
+    non-greedy 正则会提前截断（英文块里带 CSS 时触发）。"""
+    key = "window.I18N = "
+    i = SRC.find(key)
+    assert i >= 0, "window.I18N 字典未找到"
+    i += len(key)
+    depth = 0; in_str = False; esc = False; end = None
+    for k in range(i, len(SRC)):
+        c = SRC[k]
+        if in_str:
+            if esc: esc = False
+            elif c == "\\": esc = True
+            elif c == '"': in_str = False
+            continue
+        if c == '"': in_str = True
+        elif c == "{": depth += 1
+        elif c == "}":
+            depth -= 1
+            if depth == 0:
+                end = k + 1
+                break
+    assert end, "I18N JSON 括号未闭合"
+    return json.loads(SRC[i:end])
 
 
 def script_blocks():
@@ -521,7 +541,7 @@ class TestRuntime(unittest.TestCase):
     def test_structure_runtime(self):
         self._skip_if_no_results()
         self.assertEqual(self.R["counts"].get("h1"), 1)
-        self.assertEqual(self.R["counts"].get("sections"), 13)
+        self.assertEqual(self.R["counts"].get("sections"), 14)
 
     def test_rv_reveal(self):
         """滚动显现：harness iframe 内 IO 在 headless 虚拟时间下不触发，

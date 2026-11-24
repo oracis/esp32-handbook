@@ -1,0 +1,1080 @@
+<!DOCTYPE html>
+<!--
+方向 2 · 工业产品克制 / Teenage Engineering 式「硬件自己会说话」
+设计决策：
+1. 零色彩竞争：UI 只有灰阶 + 1px 发丝线。近黑 #0B0D0C 与展墙灰 #E9E8E4 交替成横向 band，像博物馆的明暗展柜。
+2. 饱和色只出现在产品本身：首屏芯片特写 SVG 里的红 PCB 与金引脚，是画面唯一彩色。
+3. 乐鑫官方红 #E7352C 只给状态/警告（PCB 上的 LED、踩坑标记），绝不进入任何 UI 控件。
+4. 全站 0px 圆角、0 阴影、0 卡片底色；层级只靠发丝线与巨大留白建立。
+5. 字重 300 系统细体 + mono 小标；标题 20px，正文 15px，标签 12px；中文回退苹方/思源黑体。
+6. 主角是一张放大的 ESP32-S3 特写（重绘自真实站点的精细 SVG），占首屏大半，像产品目录。
+7. 所有内容取自真实站点：11 款 SoC、33.7K★/2.4K★、8 节点数据流、1.2–2.5s 时延、八周路线、
+   10 条视频、39 件采购、23 条资源、12 条术语、10 条来源；star/型号/价格/数字原样保留，无虚构。
+8. 交互：芯片分类筛选、采购分组筛选、资源搜索、三步选择器、EN 首屏切换，均为真实可点。
+-->
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ESP32 全景手册 · 选型 / 上手 / 落地</title>
+<style>
+:root{
+  --ink:#0B0D0C;
+  --paper:#E9E8E4;
+  --red:#E7352C;
+  --gold:#C7A45C;
+  --sans:"Helvetica Neue",Arial,"PingFang SC","Microsoft YaHei","Noto Sans SC",sans-serif;
+  --mono:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
+}
+*{box-sizing:border-box;border-radius:0}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--ink);font-family:var(--sans);font-weight:300;font-size:15px;line-height:1.75;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+.dark{background:var(--ink);color:#ECEDEA;--line:rgba(236,237,234,.16);--muted:#A2A8A1;--faint:#6E756E}
+.light{background:var(--paper);color:#171A17;--line:rgba(23,26,23,.17);--muted:#545A54;--faint:#7E857E}
+a{color:inherit;text-decoration:none;border-bottom:1px solid var(--line)}
+a:hover{border-color:currentColor}
+button,input{font-family:inherit;border-radius:0}
+button{cursor:pointer}
+.wrap{max-width:1240px;margin:0 auto;padding:0 40px}
+
+/* hairline nav */
+.nav{position:sticky;top:0;z-index:50;background:var(--ink);color:#ECEDEA;border-bottom:1px solid rgba(236,237,234,.16)}
+.nav-in{max-width:1240px;margin:0 auto;padding:0 40px;height:58px;display:flex;align-items:center;gap:0}
+.brand{font-family:var(--mono);font-size:14px;letter-spacing:.06em;border:0;white-space:nowrap}
+.brand span{color:#8C938C}
+.nav-links{display:flex;margin-left:auto}
+.nav-links a{font-family:var(--mono);font-size:12px;letter-spacing:.04em;color:#A2A8A1;border:0;border-left:1px solid rgba(236,237,234,.16);padding:0 14px;line-height:58px;white-space:nowrap}
+.nav-links a:hover{color:#ECEDEA}
+.lang{font-family:var(--mono);font-size:12px;letter-spacing:.08em;background:transparent;color:#ECEDEA;border:0;border-left:1px solid rgba(236,237,234,.16);height:58px;padding:0 18px;margin-left:14px}
+
+/* bands */
+.band{border-top:1px solid var(--line);padding:110px 0}
+.band:first-of-type{border-top:0}
+.kicker{font-family:var(--mono);font-size:12px;letter-spacing:.14em;color:var(--muted)}
+h2{font-size:20px;font-weight:300;line-height:1.5;letter-spacing:.01em;margin:14px 0 12px}
+h3{font-size:15px;font-weight:400;margin:0 0 8px}
+p{margin:0 0 12px}
+.desc{font-size:14px;color:var(--muted);max-width:780px;margin:0}
+.hd{display:grid;grid-template-columns:1fr 150px;gap:50px;align-items:end;margin-bottom:52px}
+.hd .obj{width:150px;height:150px;color:var(--muted);justify-self:end}
+.subhd{font-family:var(--mono);font-size:12px;letter-spacing:.1em;color:var(--muted);margin:44px 0 16px;padding-top:14px;border-top:1px solid var(--line)}
+.subhd:first-child{margin-top:0}
+
+/* hero */
+.hero{padding-top:70px;padding-bottom:0}
+.hero-meta{display:flex;justify-content:space-between;font-family:var(--mono);font-size:12px;letter-spacing:.1em;color:var(--muted)}
+.hero-art{display:flex;justify-content:center;align-items:center;margin:26px auto 18px}
+.chip{width:min(70vh,660px);height:auto;display:block}
+.hero-cap{border-top:1px solid var(--line);padding-top:22px;display:grid;grid-template-columns:170px 1fr;gap:40px;align-items:start}
+.hm{font-family:var(--mono);font-size:22px;font-weight:300;letter-spacing:.04em}
+.hm small{display:block;font-size:12px;letter-spacing:.1em;color:var(--muted);margin-top:6px}
+.hero-cap h1{font-size:20px;font-weight:300;line-height:1.5;margin:0 0 8px;letter-spacing:.01em}
+.hero-cap .sub{font-size:14px;color:var(--muted);max-width:760px}
+.stats{display:grid;grid-template-columns:repeat(5,1fr);border-top:1px solid var(--line);margin-top:56px}
+.stats>div{padding:20px 6px;border-right:1px solid var(--line)}
+.stats>div:first-child{padding-left:0}
+.stats>div:last-child{border-right:0}
+.stats b{font-family:var(--mono);font-size:26px;font-weight:300;display:block;line-height:1.1}
+.stats span{font-size:12px;color:var(--muted);display:block;margin-top:8px}
+
+/* filters */
+.filters{display:flex;flex-wrap:wrap;border:1px solid var(--line);width:max-content;max-width:100%;margin-bottom:26px}
+.filters button{font-family:var(--mono);font-size:12px;letter-spacing:.04em;background:transparent;color:var(--muted);border:0;border-right:1px solid var(--line);padding:9px 15px}
+.filters button:last-child{border-right:0}
+.filters button.on{background:#ECEDEA;color:#0B0D0C}
+.light .filters button.on{background:#171A17;color:#E9E8E4}
+
+/* tables */
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px;min-width:860px}
+th{font-family:var(--mono);font-size:12px;font-weight:400;letter-spacing:.06em;text-align:left;color:var(--muted);padding:12px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:14px 10px;border-bottom:1px solid var(--line);vertical-align:top;line-height:1.6}
+tbody tr:hover{opacity:.72}
+td .nm{font-family:var(--mono);font-size:13px;display:block}
+td .em{font-size:12px;color:var(--muted);display:block;margin-top:3px}
+td .mono,code{font-family:var(--mono);font-size:.92em}
+td.no{color:var(--faint)}
+td.yes{color:inherit}
+.tagm{font-family:var(--mono);font-size:12px;border:1px solid var(--line);padding:0 5px;margin-left:5px;color:var(--muted)}
+
+/* grids and cards */
+.cards{display:grid;gap:0}
+.g2{grid-template-columns:repeat(2,1fr)}
+.g3{grid-template-columns:repeat(3,1fr)}
+.g4{grid-template-columns:repeat(4,1fr)}
+.card{border-top:1px solid var(--line);padding:20px 22px 22px 0}
+.g3 .card,.g4 .card{padding-right:22px}
+.card .ct{font-family:var(--mono);font-size:12px;letter-spacing:.06em;color:var(--muted);margin-bottom:10px}
+.card ul{margin:0;padding-left:18px;font-size:14px}
+.card li{margin-bottom:7px;line-height:1.65}
+.card li b,.card p b{font-weight:400}
+.mini{font-size:14px;color:var(--muted)}
+.rule{height:1px;background:var(--line);margin:44px 0}
+
+/* AI */
+.aicard{border-top:1px solid var(--line);padding:20px 24px 22px 0}
+.aistar{font-family:var(--mono);font-size:12px;color:var(--muted);margin:4px 0 16px}
+.flow{display:flex;flex-wrap:wrap;align-items:stretch;border:1px solid var(--line)}
+.flow .fl{flex:1;min-width:80px;padding:14px 10px;border-right:1px solid var(--line)}
+.flow .fl:last-child{border-right:0}
+.flow .fl b{display:block;font-size:14px;font-weight:400}
+.flow .fl span{font-family:var(--mono);font-size:12px;color:var(--muted);display:block;margin-top:4px}
+.flow .fl.cloud{background:rgba(127,127,127,.06)}
+.lat{max-width:720px}
+.lat div{display:flex;justify-content:space-between;gap:20px;padding:9px 0;border-bottom:1px solid var(--line);font-size:14px}
+.lat div.sum{border-bottom:0;font-weight:400}
+.lat b{font-family:var(--mono);font-weight:400;white-space:nowrap}
+.cols2{display:grid;grid-template-columns:1fr 1fr;gap:0}
+.col{border-top:1px solid var(--line);padding:20px 26px 20px 0}
+.col h4{font-size:14px;font-weight:400;margin:0 0 14px}
+.col ul{margin:0;padding-left:18px;font-size:14px}
+.col li{margin-bottom:9px}
+.cost{font-size:14px;max-width:900px}
+.cost-r{display:grid;grid-template-columns:1fr 200px 90px;gap:16px;padding:12px 0;border-bottom:1px solid var(--line)}
+.cost-r b{font-weight:400}
+.cost-r em,.cost-r .tot{font-family:var(--mono);font-style:normal;color:var(--muted)}
+
+/* wizard */
+.wz{display:grid;grid-template-columns:1fr 360px;gap:60px}
+.wz-step{margin-bottom:34px}
+.wz-q{font-family:var(--mono);font-size:12px;letter-spacing:.06em;color:var(--muted);margin-bottom:14px}
+.opts{display:flex;flex-wrap:wrap;gap:0}
+.opts button{font-size:14px;background:transparent;color:var(--muted);border:1px solid var(--line);padding:9px 14px;margin:0 -1px -1px 0}
+.opts button.on{background:#171A17;color:#E9E8E4}
+.wz-out{border-top:1px solid var(--line);padding-top:20px;min-height:200px}
+.wz-out .rn{font-family:var(--mono);font-size:22px;font-weight:300;margin-bottom:12px}
+.wz-out .rn small{font-family:var(--sans);font-size:12px;color:var(--muted);margin-left:10px;letter-spacing:.08em}
+.wz-out p{font-size:14px;color:var(--muted)}
+.wz-out dl{margin:18px 0 0;font-size:14px}
+.wz-out dt{font-family:var(--mono);font-size:12px;color:var(--muted);margin-top:12px}
+.wz-out dd{margin:4px 0 0}
+
+/* timeline */
+.tl-item{border-top:1px solid var(--line);padding:20px 24px 22px 0}
+.tl-item:first-child{border-top:0}
+.tl-w{font-family:var(--mono);font-size:12px;letter-spacing:.1em;color:var(--muted);margin-bottom:8px}
+.tl-item h4{font-size:15px;font-weight:400;margin:0 0 8px}
+.tl-item p{font-size:14px;color:var(--muted)}
+
+/* lists: video / res / cases */
+.rows{border-top:1px solid var(--line)}
+.row{display:grid;grid-template-columns:44px 1fr;gap:20px;padding:18px 0;border-bottom:1px solid var(--line)}
+.row .ix{font-family:var(--mono);font-size:12px;color:var(--faint);padding-top:3px}
+.row .t{font-size:15px;display:inline-block;margin-bottom:5px}
+.row .mt{font-family:var(--mono);font-size:12px;color:var(--muted);margin-bottom:8px}
+.row .d{font-size:14px;color:var(--muted);max-width:900px}
+.row .ft{font-family:var(--mono);font-size:12px;color:var(--faint);margin-top:8px}
+.case{padding:20px 22px 22px 0;border-top:1px solid var(--line)}
+.case .ci{font-family:var(--mono);font-size:12px;color:var(--muted);letter-spacing:.06em}
+.case h4{font-size:15px;font-weight:400;margin:8px 0 12px}
+.case p{font-size:14px;color:var(--muted)}
+.case .why{font-size:14px}
+
+/* buy */
+.buy-g{margin-bottom:44px}
+.buy-g-h{display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:18px}
+.buy-g-h b{font-size:15px;font-weight:400}
+.buy-g-h span{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.buy-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:0}
+.buy-item{display:block;border:0;border-bottom:1px solid var(--line);padding:16px 22px 16px 0}
+.buy-item .bt{display:flex;justify-content:space-between;gap:16px;font-size:14px}
+.buy-item .bt b{font-weight:400}
+.buy-item .bp{font-family:var(--mono);color:inherit;white-space:nowrap}
+.buy-item .bs{font-size:14px;color:var(--muted);margin-top:6px;line-height:1.6}
+.buy-item .bc{font-family:var(--mono);font-size:12px;color:var(--faint);margin-top:8px;display:block}
+.note{font-size:14px;color:var(--muted);border-top:1px solid var(--line);padding-top:18px;margin-top:36px}
+.note p{margin-bottom:10px}
+
+/* search */
+.search{display:flex;align-items:center;border:1px solid var(--line);height:42px;padding:0 14px;margin-bottom:18px;max-width:420px}
+.search input{border:0;background:transparent;color:inherit;font-size:14px;width:100%;outline:none}
+.search input::placeholder{color:var(--faint)}
+.search svg{width:16px;height:16px;flex:none;margin-right:10px;color:var(--muted)}
+.res-ico{font-family:var(--mono);font-size:12px;color:var(--faint);border:1px solid var(--line);padding:2px 6px;display:inline-block;margin-bottom:6px}
+
+/* code */
+.codebox{border-top:1px solid var(--line);margin-bottom:36px}
+.codebar{display:flex;justify-content:space-between;gap:16px;padding:12px 0;border-bottom:1px solid var(--line);font-family:var(--mono);font-size:12px;color:var(--muted)}
+.codebar .fn{color:inherit}
+pre{margin:0;padding:18px 0;overflow-x:auto;font-family:var(--mono);font-size:13px;line-height:1.7;color:inherit}
+pre .c{color:var(--faint)}
+pre .k,pre .f{color:inherit}
+pre .s{color:var(--muted)}
+
+/* warnings */
+.warnrow{display:grid;grid-template-columns:26px 1fr;gap:14px;padding:15px 0;border-bottom:1px solid var(--line);font-size:14px}
+.warnrow .w{font-family:var(--mono);font-size:14px;color:var(--red)}
+.warnrow b{font-weight:400}
+
+/* glossary / sources */
+.gl{display:grid;grid-template-columns:1fr 1fr;gap:0}
+.gl div{border-top:1px solid var(--line);padding:15px 24px 16px 0;font-size:14px;color:var(--muted)}
+.gl b{display:block;font-weight:400;font-family:var(--mono);font-size:13px;color:inherit;margin-bottom:5px}
+.src a{display:block;font-size:14px;padding:11px 0;border-bottom:1px solid var(--line)}
+footer{border-top:1px solid rgba(236,237,234,.16);background:var(--ink);color:#A2A8A1;padding:34px 0}
+footer .wrap{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;font-family:var(--mono);font-size:12px;letter-spacing:.04em}
+
+@media(max-width:1000px){
+  .hd{grid-template-columns:1fr;gap:24px}
+  .hd .obj{justify-self:start;width:120px;height:120px}
+  .wz{grid-template-columns:1fr;gap:40px}
+  .g4{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:820px){
+  .wrap{padding:0 20px}
+  .nav-in{padding:0 20px}
+  .nav-links{display:none}
+  .band{padding:72px 0}
+  .chip{width:min(92vw,460px)}
+  .hero-cap{grid-template-columns:1fr;gap:16px}
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .stats>div{border-bottom:1px solid var(--line)}
+  .g2,.g3,.g4,.cols2,.buy-grid,.gl{grid-template-columns:1fr}
+  .cost-r{grid-template-columns:1fr 130px 70px;gap:10px}
+  .flow .fl{min-width:50%;border-bottom:1px solid var(--line)}
+  .lat div{font-size:13px}
+}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-in">
+    <a class="brand" href="#top">ESP32 <span>手册</span></a>
+    <div class="nav-links">
+      <a href="#chips">芯片选型</a>
+      <a href="#ai">大模型 Agent</a>
+      <a href="#wizard">帮我选</a>
+      <a href="#path">学习路线</a>
+      <a href="#video">视频</a>
+      <a href="#buy">采购</a>
+      <a href="#res">资源库</a>
+    </div>
+    <button class="lang" id="langSw" type="button" aria-label="Switch language / 切换语言">EN</button>
+  </div>
+</nav>
+
+<main id="top">
+
+<!-- ============ HERO ============ -->
+<section class="band dark hero">
+  <div class="wrap">
+    <div class="hero-meta">
+      <span data-en="ESP32 FAMILY / 11 SoCs IN PRODUCTION / 4 TOOLCHAINS">ESP32 家族 / 11 款在售 SoC / 4 条主流路线</span>
+      <span>2026·11</span>
+    </div>
+
+    <div class="hero-art">
+      <svg class="chip" viewBox="0 0 640 640" role="img" aria-label="ESP32-S3 芯片特写，红色 PCB 与金色引脚">
+        <defs>
+          <pattern id="pf" width="22" height="26" patternUnits="userSpaceOnUse"><rect x="3" y="0" width="14" height="26" fill="#C7A45C"/><rect x="3" y="0" width="14" height="2" fill="#E6CF95"/></pattern>
+          <pattern id="ps" width="26" height="22" patternUnits="userSpaceOnUse"><rect x="0" y="3" width="26" height="14" fill="#C7A45C"/><rect x="0" y="3" width="2" height="14" fill="#E6CF95"/></pattern>
+        </defs>
+        <rect x="70" y="70" width="500" height="500" fill="#781E17"/>
+        <g stroke="#963027" stroke-width="1" fill="none">
+          <path d="M70 120H170M70 168H140M470 120H570M500 168H570M70 470H170M120 520H170M470 470H570M500 520H570"/>
+          <path d="M120 70V140M168 500V570M472 70V140M520 500V570"/>
+          <path d="M70 300H168M472 300H570M300 70V168M300 472V570"/>
+        </g>
+        <rect x="190" y="142" width="260" height="26" fill="url(#pf)"/>
+        <rect x="190" y="472" width="260" height="26" fill="url(#pf)"/>
+        <rect x="142" y="190" width="26" height="260" fill="url(#ps)"/>
+        <rect x="472" y="190" width="26" height="260" fill="url(#ps)"/>
+        <rect x="168" y="168" width="304" height="304" fill="#171A18" stroke="#3A413A" stroke-width="2"/>
+        <circle cx="198" cy="198" r="7" fill="#2E362E"/>
+        <text x="320" y="300" text-anchor="middle" font-family="monospace" font-size="48" letter-spacing="2" fill="#DEE2DC">ESP32</text>
+        <text x="320" y="352" text-anchor="middle" font-family="monospace" font-size="30" letter-spacing="4" fill="#A9B1A9">-S3</text>
+        <rect x="236" y="382" width="168" height="1" fill="#C7A45C"/>
+        <text x="320" y="412" text-anchor="middle" font-family="monospace" font-size="15" letter-spacing="2" fill="#818A81">N16R8 / XTENSA LX7</text>
+        <circle cx="320" cy="104" r="6" fill="#E7352C"/>
+        <circle cx="320" cy="104" r="11" fill="none" stroke="#5B1B15" stroke-width="1"/>
+        <g fill="#0B0D0C" stroke="#C7A45C" stroke-width="3">
+          <circle cx="106" cy="106" r="11"/><circle cx="534" cy="106" r="11"/><circle cx="106" cy="534" r="11"/><circle cx="534" cy="534" r="11"/>
+        </g>
+      </svg>
+    </div>
+
+    <div class="hero-cap">
+      <div class="hm">ESP32-S3<small>N16R8 / 240 MHz</small></div>
+      <div>
+        <h1 data-en="One family of chips, from a blinking LED to a shipping HMI.">一块芯片，从闪烁 LED 到量产 HMI。</h1>
+        <p class="sub" data-en="The ESP32 family has 11 SoCs in production and 4 mainstream paths into them, and now a route into LLM agents. This site turns all of it into a map you can use.">ESP32 家族已有 11 款在售 SoC、4 条主流开发路线，现在还能接大模型 Agent。这个站点把它们理成一张能直接用的地图。</p>
+      </div>
+    </div>
+
+    <div class="stats">
+      <div><b>11</b><span data-en="SoCs in production">在售 SoC 型号</span></div>
+      <div><b>4</b><span data-en="Mainstream toolchains">主流开发路线</span></div>
+      <div><b>8</b><span data-en="Week roadmap">周上手路线</span></div>
+      <div><b>23</b><span data-en="Curated links">精选资源入口</span></div>
+      <div><b>39</b><span data-en="Parts to order">件可下单配件</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 芯片选型 ============ -->
+<section class="band light" id="chips">
+  <div class="wrap">
+    <div class="hd">
+      <div>
+        <div class="kicker">芯片选型 / SELECTION</div>
+        <h2>先认清型号：11 款芯片，只有 4 种活法</h2>
+        <p class="desc">型号不是越高越好。选型的唯一判据是「这台设备必须连上什么」，其次才是算力与 IO。下面按家族分类，最后一列是落地的判断依据。</p>
+      </div>
+      <svg class="obj" viewBox="0 0 160 160" role="img" aria-label="芯片引脚示意图">
+        <rect x="18" y="18" width="124" height="124" fill="none" stroke="currentColor" stroke-width="1"/>
+        <rect x="34" y="8" width="92" height="10" fill="#C7A45C"/>
+        <rect x="34" y="142" width="92" height="10" fill="#C7A45C"/>
+        <rect x="8" y="34" width="10" height="92" fill="#C7A45C"/>
+        <rect x="142" y="34" width="10" height="92" fill="#C7A45C"/>
+        <text x="80" y="76" text-anchor="middle" font-family="monospace" font-size="15" fill="currentColor">ESP32</text>
+        <text x="80" y="96" text-anchor="middle" font-family="monospace" font-size="10" fill="currentColor">QFN</text>
+      </svg>
+    </div>
+
+    <div class="filters" id="chipFilters">
+      <button class="on" type="button" data-f="all">全部 11</button>
+      <button type="button" data-f="classic">经典 Xtensa</button>
+      <button type="button" data-f="c">RISC-V 低成本</button>
+      <button type="button" data-f="lp">低功耗 / 无线</button>
+      <button type="button" data-f="hp">高性能</button>
+    </div>
+
+    <div class="tbl-wrap">
+      <table id="chipTable">
+        <thead><tr><th>型号</th><th>架构 / 主频</th><th>SRAM</th><th>Wi-Fi</th><th>蓝牙</th><th>15.4</th><th>它存在的理由</th></tr></thead>
+        <tbody>
+          <tr data-g="classic"><td><span class="nm">ESP32</span><span class="em">初代 / WROOM-32</span></td><td>Xtensa LX6 双核<br>240 MHz</td><td>520 KB</td><td>Wi-Fi 4</td><td>Classic + BLE 4.2</td><td class="no">—</td><td>生态最厚：十年教程、答案和库都默认它。跟老教程走、要做蓝牙音频（A2DP）时仍是唯一选择。</td></tr>
+          <tr data-g="classic"><td><span class="nm">ESP32-S2</span><span class="em">单核 · 无蓝牙</span></td><td>Xtensa LX7 单核<br>240 MHz</td><td>320 KB</td><td>Wi-Fi 4</td><td class="no">无</td><td class="no">—</td><td>原生 USB OTG 是唯一卖点。要模拟 HID 键鼠 / U 盘，又不需要蓝牙时才考虑。</td></tr>
+          <tr data-g="classic"><td><span class="nm">ESP32-S3</span><span class="em">★ 默认推荐</span></td><td>Xtensa LX7 双核<br>240 MHz</td><td>512 KB</td><td>Wi-Fi 4</td><td>BLE 5.0</td><td class="no">—</td><td>带向量指令，能做端侧 AI。摄像头 / 屏 / 语音项目的事实标准。近两年几乎所有「好玩」的项目都跑在它上面。</td></tr>
+          <tr data-g="c"><td><span class="nm">ESP32-C3</span><span class="em">性价比连接节点</span></td><td>RISC-V 单核<br>160 MHz</td><td>400 KB</td><td>Wi-Fi 4</td><td>BLE 5.0</td><td class="no">—</td><td>只要「联网 + 几个 IO」时的最省解。RISC-V 入门首选。无 PSRAM，别拿它跑大屏或语音。</td></tr>
+          <tr data-g="c"><td><span class="nm">ESP32-C2</span><span class="em">极致成本</span></td><td>RISC-V 单核<br>120 MHz</td><td>272 KB</td><td>Wi-Fi 4</td><td>BLE 5.0</td><td class="no">—</td><td>为走量而生，不是为折腾而生。量产 BOM 敏感时选它；个人玩建议绕过。</td></tr>
+          <tr data-g="c"><td><span class="nm">ESP32-C6</span><span class="em">Matter 单芯片</span></td><td>RISC-V 单核<br>160 MHz</td><td>512 KB</td><td>Wi-Fi 6</td><td>BLE 5.3</td><td class="yes">✓ Thread<br>Zigbee</td><td>Wi-Fi 6 + Zigbee 3.0 + Thread 1.3 同 die。做 Matter 设备几乎没得选，除非加第二颗射频。</td></tr>
+          <tr data-g="c"><td><span class="nm">ESP32-C5</span><span class="em">唯一 5 GHz</span></td><td>RISC-V 单核<br>240 MHz</td><td>384 KB</td><td>Wi-Fi 6<br>2.4 + 5 GHz</td><td>BLE 5.0</td><td class="yes">✓</td><td>全家族唯一双频。办公室/宿舍 2.4G 挤爆时，这一条就值回票价。</td></tr>
+          <tr data-g="lp"><td><span class="nm">ESP32-H2</span><span class="em">无 Wi-Fi 是特性</span></td><td>RISC-V 单核<br>96 MHz</td><td>256 KB</td><td class="no">无</td><td>BLE 5.0</td><td class="yes">✓ Thread<br>Zigbee</td><td>功耗全家族最低。纽扣电池 + 已有 Thread/Zigbee 网关的传感器，只有它合适。</td></tr>
+          <tr data-g="hp"><td><span class="nm">ESP32-P4</span><span class="em">HMI / 视觉主控</span></td><td>RISC-V 双核<br>400 MHz</td><td>768 KB</td><td class="no">无</td><td class="no">无</td><td class="no">—</td><td>MIPI + H.264 硬编 + AI 扩展，跑大屏不卡。无射频，做联网产品必须配 C6/C5/C61 当无线协处理器。</td></tr>
+          <tr data-g="c"><td><span class="nm">ESP32-C61</span><span class="em">Wi-Fi 6 降本款</span><span class="tagm">新</span></td><td>RISC-V 单核<br>160 MHz</td><td class="no">—</td><td>Wi-Fi 6</td><td>BLE 5.0</td><td class="no">—</td><td>C6 去掉 15.4 的成本优化版。只要 Wi-Fi 6 不要 Thread 时，比 C6 便宜。</td></tr>
+          <tr data-g="hp"><td><span class="nm">ESP32-S31</span><span class="em">多射频中枢</span><span class="tagm">新</span></td><td>RISC-V 双核<br>320 MHz</td><td class="no">—</td><td>Wi-Fi 6</td><td>Classic + 5.4</td><td class="yes">✓</td><td>Wi-Fi 6 + BT 5.4 + 15.4 + 千兆 MAC 全塞一颗。多协议中枢、音频、HMI 面板；但资料与生态仍在补齐。</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="subhd">一句话决策</div>
+    <p class="mini">要屏幕/摄像头/语音 → S3；要 Matter/Thread → C6；只要联网够便宜 → C3；要比 2.4G 更干净的频段 → C5；电池供电压根不要 Wi-Fi → H2；7 寸以上的流畅界面 → P4。</p>
+    <div class="subhd">型号之外还有 E22 等</div>
+    <p class="mini">乐鑫还有 ESP32-E22（Wi-Fi 6 协处理器）、H21/H4 等衍生型号，多为配套或专用场景，个人开发基本碰不到。看官方 SoC 列表比看淘宝标题可靠。PSRAM 不是标配：型号里的 N16R8 = 16 MB Flash + 8 MB PSRAM，买成 N8 就只有 Flash。</p>
+  </div>
+</section>
+
+<!-- ============ 大模型 AGENT ============ -->
+<section class="band dark" id="ai">
+  <div class="wrap">
+    <div class="hd">
+      <div>
+        <div class="kicker">大模型 AGENT / ON-DEVICE</div>
+        <h2>这块板子开始自己想了</h2>
+        <p class="desc">2026 年最热的一条路。板上只负责听清、说清、执行，理解交给云。两条主线都已成熟：小智 AI 把语音入口和 MCP 控设备做成了标准件，ESP-Claw 干脆把 Agent Runtime 搬进了芯片。</p>
+      </div>
+    </div>
+
+    <div class="cards g2">
+      <div class="aicard">
+        <h3>小智 AI / xiaozhi-esp32</h3>
+        <div class="aistar">33.7K★ / MIT</div>
+        <ul>
+          <li><b>离线唤醒</b> ESP-SR 自带中文唤醒词，唤醒不上云，隐私和延迟都省。</li>
+          <li><b>链路</b> Opus 编码 + 流式 ASR → LLM → TTS，WebSocket 或 MQTT+UDP 二选一。</li>
+          <li><b>MCP 双端</b> 设备端控制音量、灯、舵机、GPIO；云端 MCP 接智能家居、搜索、桌面操作。</li>
+          <li><b>硬件</b> 已适配 70+ 开源硬件（S3-BOX3、CoreS3、微雪 AMOLED 等），C3/S3/P4 都能跑。</li>
+          <li><b>上手</b> 官方服务器注册就送 Qwen 实时模型额度，烧完固件配网就能说话。</li>
+        </ul>
+        <p class="mini" style="margin-top:14px"><a href="https://github.com/78/xiaozhi-esp32" target="_blank" rel="noopener">github.com/78/xiaozhi-esp32</a></p>
+      </div>
+      <div class="aicard">
+        <h3>ESP-Claw / espressif/esp-claw</h3>
+        <div class="aistar">2.4K★ / Apache-2.0</div>
+        <ul>
+          <li><b>聊天造物</b> 在飞书/QQ/微信/Telegram 里说一句需求，模型生成 Lua 脚本下发到板子执行。</li>
+          <li><b>三级路由</b> Lua 确定性规则走毫秒级；需要理解意图才升级到 LLM；更复杂的转云端模型。</li>
+          <li><b>MCP 双身份</b> 既能当 Server 把传感器/执行器暴露给别的 Agent，也能当 Client 调外部工具。</li>
+          <li><b>记忆本地</b> 结构化记忆存板上（标签 + JSONL），隐私不上云，跨会话还记得你。</li>
+          <li><b>门槛</b> 要 Flash ≥ 8MB + PSRAM ≥ 8MB；S3 / P4 / C5 / S31 可用，网页一键烧录。</li>
+        </ul>
+        <p class="mini" style="margin-top:14px"><a href="https://github.com/espressif/esp-claw" target="_blank" rel="noopener">github.com/espressif/esp-claw</a></p>
+      </div>
+    </div>
+
+    <div class="subhd">一句话说完的数据流</div>
+    <div class="flow">
+      <div class="fl"><b>麦克风</b><span>I2S / PDM</span></div>
+      <div class="fl"><b>唤醒</b><span>ESP-SR / 离线</span></div>
+      <div class="fl"><b>编码</b><span>Opus 16k</span></div>
+      <div class="fl"><b>上行</b><span>WS / MQTT</span></div>
+      <div class="fl cloud"><b>ASR</b><span>流式识别</span></div>
+      <div class="fl cloud"><b>LLM</b><span>+ MCP 工具</span></div>
+      <div class="fl cloud"><b>TTS</b><span>流式合成</span></div>
+      <div class="fl"><b>喇叭</b><span>I2S 功放</span></div>
+    </div>
+
+    <div class="subhd">时延预算：端到端 1.2–2.5 秒，钱和体验都花在这</div>
+    <div class="lat">
+      <div><span>唤醒词检测（板上）</span><b>0.2–0.3 s</b></div>
+      <div><span>静音判定 VAD</span><b>0.3–0.5 s</b></div>
+      <div><span>上行 + 流式 ASR 首字</span><b>0.3–0.5 s</b></div>
+      <div><span>LLM 首 token</span><b>0.3–0.8 s</b></div>
+      <div><span>TTS 首包</span><b>0.2–0.4 s</b></div>
+      <div class="sum"><span>合计（用户体感的「它怎么还没说话」）</span><b>1.2–2.5 s</b></div>
+    </div>
+
+    <div class="subhd">板上真正能干的，和别指望的</div>
+    <div class="cols2">
+      <div class="col">
+        <h4>能跑在板上</h4>
+        <ul>
+          <li>离线唤醒词（中文自带）、VAD、回声消除（S3/P4 双麦）</li>
+          <li>Opus 编解码 + TLS + WebSocket，8MB PSRAM 够用</li>
+          <li>MCP 工具执行：GPIO、PWM、舵机、WS2812、继电器</li>
+          <li>S3 上的摄像头 JPEG 抓帧、LVGL 表情屏</li>
+          <li>本地 Lua 规则：断网也能守住的硬约束</li>
+        </ul>
+      </div>
+      <div class="col">
+        <h4>别指望</h4>
+        <ul>
+          <li>板上跑 7B 级模型 —— 显存单位是 MB，不是 GB</li>
+          <li>本地 Whisper 级 ASR —— 大模型塞不进 8MB PSRAM</li>
+          <li>多轮长上下文 —— 40 轮之后必须截断，否则 token 账单失控</li>
+          <li>高质量端侧 TTS —— 能跑，但一听就是机器</li>
+          <li>完全离线对话 —— 断网只剩唤醒和本地规则</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="subhd">成本：语音是按分钟烧的钱（按每天 20 分钟、每轮 30 秒、回 60 字估算）</div>
+    <div class="cost">
+      <div class="cost-r"><span><b>豆包 Seed-Realtime 端到端</b> 语音进语音出，延迟最低，按分钟计费最省心</span><span><em>0.2 元/分钟</em></span><span class="tot">¥120</span></div>
+      <div class="cost-r"><span><b>分离式：ASR + 文本 LLM + TTS</b> 拼装麻烦，但便宜 4 倍，可换任意模型</span><span><em>ASR 1 元/小时 / TTS 3 元/万字符</em></span><span class="tot">¥30–35</span></div>
+      <div class="cost-r"><span><b>OpenAI gpt-realtime-2.1</b> 效果最好，最贵</span><span><em>≈ 0.06 美元/分钟</em></span><span class="tot">≈ $36</span></div>
+      <div class="cost-r"><span><b>自建服务端 + 自己的 key</b> 可控性最高，前提是你有台常开的机器</span><span><em>0 平台费，只剩模型费</em></span><span class="tot">看你用什么</span></div>
+    </div>
+    <p class="note">最小 BOM：S3 N16R8 + INMP441 + MAX98357A + 8Ω 2W 喇叭（带腔体），合计 ¥60–140。不想接线的，直接买已适配小智的成品套件（S3-BOX-3、M5Stack CoreS3），开箱带麦、喇叭、屏。</p>
+  </div>
+</section>
+
+<!-- ============ 决策器 ============ -->
+<section class="band light" id="wizard">
+  <div class="wrap">
+    <div class="hd">
+      <div>
+        <div class="kicker">帮我选 / PICK A CHIP</div>
+        <h2>三步选出芯片和第一块板</h2>
+        <p class="desc">点选项，结果实时更新。逻辑来自上面的能力矩阵，不含任何玄学。</p>
+      </div>
+    </div>
+
+    <div class="wz">
+      <div>
+        <div class="wz-step">
+          <div class="wz-q">Q1 / 这台设备主要干什么</div>
+          <div class="opts" data-key="purpose">
+            <button type="button" data-v="learn">跟着教程学</button>
+            <button type="button" data-v="cheap">联网 + 几个 IO</button>
+            <button type="button" data-v="display">小屏 / 仪表盘（≤5″）</button>
+            <button type="button" data-v="bigdisp">大屏 / 视频 / HMI（≥7″）</button>
+            <button type="button" data-v="vision">摄像头 / 端侧 AI</button>
+            <button type="button" data-v="audio">语音助手 / 音频</button>
+            <button type="button" data-v="matter">智能家居（Matter/Thread）</button>
+            <button type="button" data-v="battery">电池供电的无线传感器</button>
+          </div>
+        </div>
+        <div class="wz-step">
+          <div class="wz-q">Q2 / 需不需要蓝牙</div>
+          <div class="opts" data-key="bt">
+            <button class="on" type="button" data-v="any">无所谓</button>
+            <button type="button" data-v="need">必须要（配网/音频/外设）</button>
+            <button type="button" data-v="no">完全不需要</button>
+          </div>
+        </div>
+        <div class="wz-step">
+          <div class="wz-q">Q3 / 这是原型还是要走量</div>
+          <div class="opts" data-key="scale">
+            <button class="on" type="button" data-v="proto">先做出来再说</button>
+            <button type="button" data-v="mass">要小批量生产</button>
+          </div>
+        </div>
+      </div>
+      <div class="wz-out" id="wzOut"><div class="mini">选一项 Q1，结果会出现在这里。</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 学习路线 ============ -->
+<section class="band dark" id="path">
+  <div class="wrap">
+    <div class="hd">
+      <div>
+        <div class="kicker">学习路线 / ROADMAP</div>
+        <h2>八周路线：每周 6–8 小时，能走完</h2>
+        <p class="desc">前提是 C 语言过关。指针和数组不熟的话，先补两周再来 —— 第 3 周就会卡死在那。路线刻意混用两条框架：先用 Arduino 拿反馈，再用 IDF 理解底层。</p>
+      </div>
+    </div>
+    <div class="cards g2">
+      <div>
+        <div class="tl-item"><div class="tl-w">WEEK 1</div><h4>环境 + 点亮</h4><p>装 Arduino IDE 2.x 与 core 3.x，跑通 Blink 与串口打印。目标不是「亮灯」，是搞清楚「编译 → 烧录 → 串口」这条链断在哪一环。</p></div>
+        <div class="tl-item"><div class="tl-w">WEEK 2</div><h4>GPIO / 中断 / 定时器</h4><p>按键消抖、外部中断、millis() 非阻塞计时。写一个不阻塞的呼吸灯，理解为什么不该用 delay()。</p></div>
+        <div class="tl-item"><div class="tl-w">WEEK 3–4</div><h4>总线：I2C / SPI / UART</h4><p>接一颗 BME280 读温湿压，再用 SPI 点一块 ST7789 屏。逻辑分析仪（¥30 的克隆版即可）比读十篇文章有用。</p></div>
+        <div class="tl-item"><div class="tl-w">WEEK 5</div><h4>Wi-Fi + 一个云端</h4><p>连 Wi-Fi 打 HTTP GET 拿天气，再推到 MQTT broker。学会处理重连、断网、DNS 失败 —— 这比「连上了」重要得多。</p></div>
+      </div>
+      <div>
+        <div class="tl-item"><div class="tl-w">WEEK 6</div><h4>进 ESP-IDF</h4><p>装 IDF 5.5 LTS，用 idf.py 建工程、menuconfig、分区表。把第 5 周的 Wi-Fi 代码改成 IDF 版，体会事件循环和 FreeRTOS 任务的区别。</p></div>
+        <div class="tl-item"><div class="tl-w">WEEK 7</div><h4>FreeRTOS + 双核</h4><p>两个任务、一个队列。Core 0 跑网络、Core 1 跑采样，用 xTaskCreatePinnedToCore 固定。这是从「能用」到「稳」的分水岭。</p></div>
+        <div class="tl-item"><div class="tl-w">WEEK 8</div><h4>OTA + 低功耗 + 收尾</h4><p>加上 OTA 空中升级（记住要双 app 分区）、深度睡眠唤醒、看门狗。做完这一周，你已经能交付一台真设备了。</p></div>
+        <div class="tl-item"><div class="tl-w">之后</div><h4>选一个垂直方向深挖</h4><p>LVGL 图形、ESP-ADF 音频、esp-matter 智能家居、ESP-NOW 自组网 —— 四条都能独立成职业方向。</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 视频 ============ -->
+<section class="band light" id="video">
+  <div class="wrap">
+    <div class="hd">
+      <div>
+        <div class="kicker">视频 / VIDEOS</div>
+        <h2>10 条中文教程，按顺序看完就能上手</h2>
+        <p class="desc">全部外链到原站（B 站 / 官方频道），本站不转存、不嵌播放器。每条都标了它是 Arduino 路线还是 IDF 路线，别混着看，两条线的 API 不通用。</p>
+      </div>
+    </div>
+    <div class="rows">
+      <div class="row"><div class="ix">01</div><div><a class="t" href="https://www.bilibili.com/video/BV1Pw4m1D7Ge/" target="_blank" rel="noopener">【普中官方】手把手教你学 ESP32-S3 / 基于 Arduino</a><div class="mt">普中官方 / 100+ 集，单集 2–16 分钟 / 入门</div><p class="d">唯一一套认真补 C 语言的中文课：第 3 章讲数据类型、循环、数组，第 4 章才点灯。之后蜂鸣器、继电器、直流/步进电机、外部中断、定时器、PWM 呼吸灯一路走完。零基础最好的起点。</p><div class="ft">适合：没写过代码的人</div></div></div>
+      <div class="row"><div class="ix">02</div><div><a class="t" href="https://www.bilibili.com/video/BV164411J7GE/" target="_blank" rel="noopener">太极创客《零基础入门学用 Arduino》基础知识篇</a><div class="mt">太极创客 / 合辑连载 / 入门</div><p class="d">中文 Arduino 教学里体系最完整的一套，配套代码和图文全免费。用 ESP32 学完语法后，可以接着看他们的物联网专题。</p><div class="ft">适合：想要系统教材而非碎片视频</div></div></div>
+      <div class="row"><div class="ix">03</div><div><a class="t" href="https://www.bilibili.com/video/BV1EPisBWEUX/" target="_blank" rel="noopener">【正点原子】ESP32 快速入门开发秘籍（IDF 版）</a><div class="mt">正点原子 / 48 讲 / 入门 → 进阶</div><p class="d">中文里最完整的一条 IDF 主线：环境安装 → 新建工程 → 分区表 → 自定义组件 → GPIO/EXTI/UART/定时器/LEDC/IIC/SPI/LCD/ADC → LWIP 与 Wi-Fi → 蓝牙。真人出镜带字幕，每讲 7–25 分钟，跟着敲就行。</p><div class="ft">适合：决定走 IDF 的人</div></div></div>
+      <div class="row"><div class="ix">04</div><div><a class="t" href="https://www.bilibili.com/video/BV1tY4y1L7HV/" target="_blank" rel="noopener">【乐鑫教程】物联网开发框架 ESP-IDF 开发入门</a><div class="mt">乐鑫官方 / 1 小时 3 分 / 入门</div><p class="d">官方工程师讲「IDF 为什么这么组织」—— 构建系统、组件、sdkconfig 的设计逻辑。先建立这张地图再去装环境，后面遇到报错才知道自己在哪一层。</p><div class="ft">适合：动手前先建立全局认知</div></div></div>
+      <div class="row"><div class="ix">05</div><div><a class="t" href="https://www.bilibili.com/video/BV1to4y177ko/" target="_blank" rel="noopener">【乐鑫教程】一键安装工具快速搭建 ESP-IDF 环境（Windows）</a><div class="mt">乐鑫官方 / 单集 / 入门</div><p class="d">装环境卡住就看这个：离线/在线安装器怎么选、idf.py 编译官方例程、VS Code 里改代码二次开发。官方录制，路径和文档完全对得上，比抄博客稳。</p><div class="ft">适合：第一次装 IDF 报错的人</div></div></div>
+      <div class="row"><div class="ix">06</div><div><a class="t" href="https://www.bilibili.com/video/BV1bG4y1f7NP/" target="_blank" rel="noopener">ESP32 从 0 到 1 保姆级教程（基于 IDF）</a><div class="mt">是个白菜 / 合集，单集 10–32 分钟 / 入门</div><p class="d">节奏比正点原子快得多，单集短，适合当「第二遍复习」用：IDF 环境安装 → GPIO 输出 → GPIO 输入与外部中断。看完一条只花十几分钟，通勤路上刷得动。</p><div class="ft">适合：已经跟过一遍、想快刷巩固</div></div></div>
+      <div class="row"><div class="ix">07</div><div><a class="t" href="https://www.bilibili.com/video/BV1X34y1M7L8/" target="_blank" rel="noopener">ESP-IDF VSCode 开发【沉浸式教程】</a><div class="mt">B站 / 单集 / 入门</div><p class="d">无解说、纯操作流：VSCode + IDF 插件从零配到能编译烧录。被图文教程绕晕的时候，看别人鼠标点一遍比读十页文档快。</p><div class="ft">适合：只要照着点一遍</div></div></div>
+      <div class="row"><div class="ix">08</div><div><a class="t" href="https://www.bilibili.com/video/BV11C4y1C7M3/" target="_blank" rel="noopener">ESP32 + LVGL：从驱动板到 86 盒温控器（系列）</a><div class="mt">9 集系列 / 项目实战 / 进阶</div><p class="d">一套「能卖的产品」是怎么做出来的：RGB 驱动板开源 → 移植 SquareLine UI 工程 → 中文字体制作 → PWM 调光 → 联网扫描配网 → OTA 升级。想做带屏 HMI，就跟着这条线从头走一遍。</p><div class="ft">适合：要做带屏产品的人</div></div></div>
+      <div class="row"><div class="ix">09</div><div><a class="t" href="https://www.bilibili.com/video/BV1NCjEz9E4T/" target="_blank" rel="noopener">AI 小狗详细教程：ESP32-S3 + 舵机 + 小智固件</a><div class="mt">MEIRKIN / 项目实战 / 进阶</div><p class="d">四路舵机 + 小智 AI 固件，做成会做表情、会动的桌面宠物。想知道「AI 硬件」落到实物上到底长什么样，这是最直观的一个范本 —— 而且它把舵机引脚、固件烧录位置全讲清了。</p><div class="ft">适合：想摸 AI 硬件的人</div></div></div>
+      <div class="row"><div class="ix">10</div><div><a class="t" href="https://search.bilibili.com/all?keyword=ESP32" target="_blank" rel="noopener">以上都不对口？直接按项目名搜</a><div class="mt">站内搜索 / 兜底</div><p class="d">B 站的视频没有稳定「课程目录」，同一门课经常被搬运重发。正确搜法：先搜具体项目名（如「ESP32 墨水屏」「ESP32-CAM 拍照」），再按「播放量最高 + 发布时间最近」交叉挑 —— 老视频的 IDF 版本往往已经对不上。</p><div class="ft">技巧：项目名优于课程名</div></div></div>
+    </div>
+    <div class="note"><b>注意版本。</b> 2023 年前录的 IDF 教程多是 4.x：<code>driver/i2c.h</code> 已经换成 <code>driver/i2c_master.h</code>、ADC 校准接口重写过，照着敲必报错 —— 这类视频只当思路参考。Arduino 那边同理，core 3.x 起 <code>ledcSetup/ledcAttachPin</code> 已改成 <code>ledcAttach(pin, freq, res)</code>。看之前先瞄一眼发布日期。</div>
+  </div>
+</section>
+
+<!-- ============ 产品实例 ============ -->
+<section class="band dark" id="cases">
+  <div class="wrap">
+    <div class="hd">
+      <div>
+        <div class="kicker">产品实例 / IN THE WILD</div>
+        <h2>别人已经做成了什么（可复刻）</h2>
+        <p class="desc">下面 8 个都是完整可查的开源/在售项目，不是「想法」。每个都标了它真正解决的技术难点 —— 那才是复刻时值钱的部分。</p>
+      </div>
+    </div>
+    <div class="cards g3">
+      <div class="case"><div class="ci">CASE 01 / 智能家居</div><h4>壁挂式 Home Assistant 控制面板</h4><p>2.8″ 或 4.0″ 触摸屏跑磁贴界面，实时反映灯、风扇、窗帘状态，长按弹出亮度滑块。配套 3D 打印外壳，能嵌进标准欧标暗盒。</p><p class="why"><b>难点：</b>开机直接进面板而不是桌面（Android 平板做不到这点），以及隐藏走线。屏幕是 ESP32-2432S028（CYD）或 ESP32-4848S040C_I。</p></div>
+      <div class="case"><div class="ci">CASE 02 / 商业终端</div><h4>ESP32-P4 点餐机 / Kiosk</h4><p>全本地运行：逻辑、菜单、媒体全在 SD 卡里，没有服务器、没有 broker、没有云。触屏点单、播放音视频，源码与 LVGL 模板开源。</p><p class="why"><b>难点：</b>P4 没有硬件视频解码跑通用格式，作者用 Python 预转 MJPEG-in-AVI，靠 P4 的算力软解才做到 1024×600 全屏流畅。</p></div>
+      <div class="case"><div class="ci">CASE 03 / 支付硬件</div><h4>UPI 自动售货机（动态二维码）</h4><p>7 寸 CrowPanel 做交互面：选商品 → 按该笔金额生成动态二维码 → 付款成功后驱动热敏打印机出小票。完整的交易终端闭环。</p><p class="why"><b>难点：</b>金额与二维码必须一一对应且不可复用，本质是把「支付状态机」跑在 MCU 上，容错比功能重要。</p></div>
+      <div class="case"><div class="ci">CASE 04 / 桌面硬件</div><h4>EKOS 电子墨水看板（众筹在售）</h4><p>橡木 + 阳极氧化铝外壳，BME280 测环境，4000 mAh 电池靠 light/deep sleep 调度撑数周。板载 HTTP 服务暴露 OpenAPI 文档化的本地 REST 接口，用 curl 就能改屏。</p><p class="why"><b>难点：</b>选 IDF 而非 Arduino 正是为了功耗优化与底层外设控制；界面用 JSON 模板描述、LVGL 渲染，做 1-bit/灰阶优化。</p></div>
+      <div class="case"><div class="ci">CASE 05 / 全屋监测</div><h4>P4 + 10.1″ 环境监测中枢</h4><p>六个无线节点位，每个显示名称、电量、信号质量，本地存 24 小时历史曲线。数据不过厂商云，只有天气和 OTA 需要联网。</p><p class="why"><b>难点：</b>「过期数据比没数据更误导人」—— 作者把最后上报时间直接摆在卡片上，而不是让屏幕停在几小时前的读数。</p></div>
+      <div class="case"><div class="ci">CASE 06 / AI 硬件</div><h4>小智 AI 语音助手</h4><p>国内最火的 ESP32 DIY 方向。裸核心板 30 元起，成品盒子 90 元。语音对话 + 表情屏，社区固件已相当成熟。</p><p class="why"><b>难点：</b>别买 C3（无 PSRAM 跑不动）；N16R8 的 8 MB PSRAM 是硬门槛；麦克风与喇叭的选型决定了体验的一半。</p></div>
+      <div class="case"><div class="ci">CASE 07 / 能源</div><h4>太阳能 / 电费看板</h4><p>同时显示发电曲线、电池 SOC、分时电价和未来数小时调度计划。站着也能读清 —— 这是 1024×600 的信息密度下限。</p><p class="why"><b>难点：</b>多层 LVGL 界面在 400 MHz 双核 + 大 PSRAM 下才不卡；它不是屏幕演示，是本来就必须存在的显示层。</p></div>
+      <div class="case"><div class="ci">CASE 08 / 入门练手</div><h4>经典四件套：气象站 / 时钟 / 相机 / 掌机</h4><p>BME280 气象站、NTP 网络时钟、ESP32-CAM 图传、8 位模拟器掌机。这四个几乎覆盖了所有基础外设，是被复刻最多的入门项目。</p><p class="why"><b>难点：</b>不在功能，在于把它们做「稳」：断网自恢复、内存不泄漏、长时间运行不重启。</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 采购清单 ============ -->
+<section class="band light" id="buy">
+  <div class="wrap">
+    <div class="hd">
+      <div>
+        <div class="kicker">采购 / SOURCING</div>
+        <h2>采购清单：这里提到的每个件，点开就是淘宝</h2>
+        <p class="desc">价格是 2026 年 11 月的大陆常见区间，只用来判断档位，不是报价。卡片链到的是淘宝搜索结果而不是单个商品 —— 商品 ID 几个月就换，搜索词不会失效。</p>
+      </div>
+    </div>
+
+    <div class="filters" id="buyFilters">
+      <button class="on" type="button" data-bf="all">全部 39 件</button>
+      <button type="button" data-bf="board">板卡</button>
+      <button type="button" data-bf="display">显示</button>
+      <button type="button" data-bf="sensor">传感</button>
+      <button type="button" data-bf="av">视觉语音</button>
+      <button type="button" data-bf="power">电源辅材</button>
+    </div>
+
+    <div id="buyList">
+      <div class="buy-g" data-g="board">
+        <div class="buy-g-h"><b>板卡与芯片</b><span>10 件 / 第一笔钱花在这</span></div>
+        <div class="buy-grid">
+          <a class="buy-item" href="https://s.taobao.com/search?q=esp32-s3%20n16r8%20%E5%BC%80%E5%8F%91%E6%9D%BF" target="_blank" rel="noopener nofollow"><div class="bt"><b>ESP32-S3 开发板 N16R8</b><span class="bp">¥28–55</span></div><div class="bs">16MB Flash + 8MB PSRAM。跑 LVGL、接摄像头都不炸内存，第一块板就买这个规格。</div><span class="bc">淘宝搜索</span></a>
+          <a class="buy-item" href="https://s.taobao.com/search?q=esp32-s3-devkitc-1%20%E4%B9%90%E9%91%AB%20%E5%8E%9F%E5%8E%82" target="_blank" rel="noopener nofollow"><div class="bt"><b>ESP32-S3-DevKitC-1（乐鑫原厂）</b><span class="bp">¥62–95</span></div><div class="bs">排针间距、丝印、原理图跟官方文档完全对得上。省下来的时间比省下的三十块值。</div><span class="bc">淘宝搜索</span></a>
+          <a class="buy-item" href="https://s.taobao.com/search?q=esp32-c3%20%E5%BC%80%E5%8F%91%E6%9D%BF%20supermini" target="_blank" rel="noopener nofollow"><div class="bt"><b>ESP32-C3 开发板（SuperMini 类）</b><span class="bp">¥12–28</span></div><div class="bs">十几块一片，单核 RISC-V，做传感器节点、开关类设备足够。</div><span class="bc">淘宝搜索</span></a>
+          <a class="buy-item" href="https://s.taobao.com/search?q=esp32-c6%20%E5%BC%80%E5%8F%91%E6%9D%BF" target="_blank" rel="noopener nofollow"><div class="bt"><b>ESP32-C6 开发板</b><span class="bp">¥35–70</span></div><div class="bs">带 Wi-Fi 6 与 Thread/Zigbee 射频。只有做 Matter 或 Thread 才需要多花这笔。</div><span class="bc">淘宝搜索</span></a>
+          <a class="buy-item" href="https://s.taobao.com/search?q=esp32-c5%20%E5%BC%80%E5%8F%91%E6%9D%BF" target="_blank" rel="noopener nofollow"><div class="bt"><b>ESP32-C5 开发板</b><span class="bp">¥45–85</span></div><div class="bs">双频 Wi-Fi 6（2.4G + 5G），C6 的射频升级版。板子还新，货少价高。</div><span class="bc">淘宝搜索</span></a>
+          <a class="buy-item" href="https://s.taobao.com/search?q=esp32-s3-wroom-1%20n16r8%20%E6%A8%A1%E7%BB%84" target="_blank" rel="noopener nofollow"><div class="bt"><b>ESP32-S3-WROOM-1 模组（N16R8）</b><span class="bp">¥18–35</span></div><div class="bs">自己画板时买它。注意天线形式：1 是 PCB 天线，1U 是外接天线座。</div><span class="bc">淘宝搜索</span></a>
+          <a class="buy-item" href="https://s.taobao.com/search?q=esp32-p4%20%E5%BC%80%E5%8F%91%E6%9D%BF" target="_blank" rel="noopener nofollow"><div class="bt"><b>ESP32-P4 开发板</b><span class="bp">¥130–260</span></div><div class="bs">跑 HMI、多屏、MIPI 摄像头的正路。它自己没有 Wi-Fi，要另配 C6 模组。</div><span class="bc">淘宝搜索</span></a>
+          <a class="buy-item" href="https://s.taobao.com/search?q=esp32-cam%20ov2640%20%E6%91%84%E5%83%8F%E5%A4%B4" target="_blank" rel="noopener nofollow"><div class="bt"><b>ESP32-CAM（OV2640）</b><span class="bp">¥18–40</span></div><div class="bs">二十块就能出图。注意它没有 USB，刷机要 USB-TTL 模块加一根跳线。</div><span class="bc">淘宝搜索</span></a>
+          <a class="buy-item" href="https://s.taobao.com/search?q=esp32-s3-box-3%20%E4%B9%90%E9%91%AB%20%E5%BC%80%E5%8F%91%E5%A5%97%E4%BB%B6" target="_blank" rel="noopener nofollow"><div class="bt"><b>S3-BOX-3 开发套件（乐鑫）</b><span class="bp">¥250–360</span></div><div class="bs">开箱带双麦、喇叭、2.4 寸屏和外壳，小智与 ESP-Claw 都已适配，省掉接线和腔体调试。</div><span class="bc">淘宝搜索</span></a>
+          <a class="buy-item" href="https://s.taobao.com/search?q=m5stack%20cores3%20%E5%BC%80%E5%8F%91%E5%A5%97%E4%BB%B6" target="_blank" rel="noopener nofollow"><div class="bt"><b>M5Stack CoreS3 开发套件</b><span class="bp">¥300–450</span></div><div class="bs">带屏、麦、喇叭、电池和磁吸底座，做桌面 Agent 最快的一块板；小智固件直接支持。</div><span class="bc">淘宝搜索</span></a>
+        </div>
+      </div>
+
+      <div class="buy-g" data-g="display">
+        <div class="buy-g-h"><b>屏幕与显示</b><span>6 件 / 按驱动 IC 搜，别按尺寸搜</span></div>
+        <div class="buy-grid">
+          <a class="buy-item" href="https://s.taobao.com/search?q=gc9a01%201.28%20%E5%9C%86%E5%B1%8F%20spi" target="_blank" rel="noopener nofollow"><div class="bt"><b>1.28 寸圆屏 GC9A01</b><span class="bp">¥18–35</span></div><div class="bs">240×240，SPI 四线。做旋钮表盘、天气钟最省事，LVGL 有现成驱动。</div><span class="bc">淘宝搜索</span></a>
+          <a class="buy-item" href="https://s.taobao.com/search?q=st7789%202.4%20%E5%AF%B8%20ips%20spi" target="_blank" rel="noopener nofollow"><div class="bt"><b>2.4 寸 IPS ST7789</b><span class="bp">¥20–42</span></div><div class="bs">240×320，比 OLED 亮得多，白天户外也看得清。</div><span class="bc">淘宝搜索</span></a>
+          <a class="buy-item" href="https://s.taobao.com/search?q=ssd1306%200.96%20oled%20i2c" target="_blank" rel="noopener nofollow"><div class="bt"><b>0.96 寸 OLED SSD1306</b><span class="bp">¥8–16</span></div><div class="bs">I2C 四针，接线最省。调试时当第二块屏专门看变量。</div><span class="bc">淘宝搜索</span></a>
+          <a class="buy-item" href="https://s.taobao.com/search?q=%E5%BE%AE%E9%9B%AA%201.54%20%E5%A2%A8%E6%B0%B4%E5%B1%8F%20spi%20%E6%A8%A1%E5%9D%97" target="_blank" rel="noopener nofollow"><div class="bt"><b>1.54 寸墨水屏（微雪）</b><span class="bp">¥45–80</span></div><div class="bs">局刷 0.3 秒，断电保图。电子价签、日历、桌面摆件都用它。</div><span class="bc">淘宝搜索</span></a>
+          <a class="buy-item" href="https://s.taobao.com/search?q=2.9%20%E5%AF%B8%20%E5%A2%A8%E6%B0%B4%E5%B1%8F%20spi" target="_blank" rel="noopener nofollow"><div class="bt"><b>2.9 寸墨水屏</b><span class="bp">¥70–125</span></div><div class="bs">296×128，横条形。三色版贵一倍但好看，刷新也更慢。</div><span class="bc">淘宝搜索</span></a>
+          <a class="buy-item" href="https://s.taobao.com/search?q=ili9488%203.5%20%E5%AF%B8%20tft%20%E8%A7%A6%E6%91%B8%20spi" target="_blank" rel="noopener nofollow"><div class="bt"><b>3.5 寸 TFT 带触摸</b><span class="bp">¥45–85</span></div><div class="bs">ILI9488 + XPT2046，SPI 就够。别买并口版，ESP32 接不动。</div><span class="bc">淘宝搜索</span></a>
+        </div>
+      </div>
+
+      <div class="buy-g" data-g="sensor">
+        <div class="buy-g-h"><b>传感与执行</b><span>9 件 / 一个模块就是一章教程</span></div>
+        <div class="buy-grid">
+          <a class="buy-item" href="https://s.taobao.com/search?q=bme280%20%E6%A8%A1%E5%9D%97%20i2c" target="_blank" rel="noopener nofollow"><div class="bt"><b>BME280 温湿压三合一</b><span class="bp">¥12–26</span></div><div class="bs">I2C，比 DHT 稳得多，长期漂移小。做环境数据只认它。</div><span class="bc">淘宝搜索</span></a>
+          <a class="buy-item" href="https://s.taobao.com/search?q=sht30%20%E6%B8%A9%E6%B9%BF%E5%BA%A6%20%E6%A8%A1%E5%9D%97" target="_blank" rel="noopener nofollow"><div class="bt"><b>SHT30 / SHT31 温湿度</b><span class="bp">¥12–30</span></div><div class="bs">±2%RH，需要标称精度的场合用它，比 BME280 更准也更贵。</div><span class="bc">淘宝搜索</span></a>
+          <a class="buy-item" href="https://s.taobao.com/search?q=mpu6050%20%E6%A8%A1%E5%9D%97" target="_blank" rel="noopener nofollow"><div class="bt"><b>MPU6050 六轴</b><span class="bp">¥6–15</span></div><div class="bs">姿态、震动、计步的起点，十块以内。DMP 能直接出四元数。</div><span class="bc">淘宝搜索</span></a>
+          <a class="buy-item" href="https://s.taobao.com/search?q=inmp441%20i2s%20%E9%BA%A6%E5%85%8B%E9%A3%8E" target="_blank" rel="noopener nofollow"><div class="bt"><b>INMP441 数字麦克风</b><span class="bp">¥12–26</span></div><div class="bs">I2S 直出 PCM，不用外部 ADC。做语音唤醒、声控的第一步。</div><span class="bc">淘宝搜索</span></a>
+          <a class="buy-item" href="https://s.taobao.com/search?q=max98357a%20i2s%20%E5%8A%9F%E6%94%BE" target="_blank" rel="noopener nofollow"><div class="bt"><b>MAX98357A I2S 功放</b><span class="bp">¥10–20</span></div><div class="bs">I2S 进、3W 出，接喇叭只要三根线，没有模拟噪声问题。</div><span class="bc">淘宝搜索</span></a>
+          <a class="buy-item" href="https://s.taobao.com/search?q=sg90%20%E8%88%B5%E6%9C%BA" target="_blank" rel="noopener nofollow"><div class="bt"><b>SG90 舵机</b><span class="bp">¥6–16</span></div><div class="bs">9g 塑料齿，玩具级够用。要耐用换 MG90S 金属齿，贵几块。</div><span class="bc">淘宝搜索</span></a>
+          <a class="buy-item" href="https://s.taobao.com/search?q=5v%20%E7%BB%A7%E7%94%B5%E5%99%A8%20%E6%A8%A1%E5%9D%97%20%E5%85%89%E8%80%A6" target="_blank" rel="noopener nofollow"><div class="bt"><b>5V 继电器模块</b><span class="bp">¥6–14</span></div><div class="bs">认准光耦隔离版。控 220V 负载务必加保险，别拿命试。</div><span class="bc">淘宝搜索</span></a>
+          <a class="buy-item" href="https://s.taobao.com/search?q=rc522%20rfid%20%E6%A8%A1%E5%9D%97" target="_blank" rel="noopener nofollow"><div class="bt"><b>RC522 RFID 读卡</b><span class="bp">¥8–18</span></div><div class="bs">13.56MHz，门禁、打卡、NFC 玩具的标配，SPI 接口。</div><span class="bc">淘宝搜索</span></a>
+          <a class="buy-item" href="https://s.taobao.com/search?q=ws2812b%20%E7%81%AF%E5%B8%A6%205v" target="_blank" rel="noopener nofollow"><div class="bt"><b>WS2812B 灯带</b><span class="bp">¥12–40</span></div><div class="bs">5V 可寻址。用 RMT 外设驱动，千万别用软件延时，一卡就变色。</div><span class="bc">淘宝搜索</span></a>
+        </div>
+      </div>
+
+      <div class="buy-g" data-g="av">
+        <div class="buy-g-h"><b>视觉与语音</b><span>3 件 / 让板子看得见、听得见</span></div>
+        <div class="buy-grid">
+          <a class="buy-item" href="https://s.taobao.com/search?q=ov5640%20%E6%91%84%E5%83%8F%E5%A4%B4%20dvp%20%E6%A8%A1%E5%9D%97" target="_blank" rel="noopener nofollow"><div class="bt"><b>OV5640 摄像头</b><span class="bp">¥45–90</span></div><div class="bs">500 万像素，DVP 并口。S3 能跑 JPEG 出图，帧率看分辨率。</div><span class="bc">淘宝搜索</span></a>
+          <a class="buy-item" href="https://s.taobao.com/search?q=8%E6%AC%A7%202w%20%E5%96%87%E5%8F%AD%20%E5%B8%A6%E8%85%94%E4%BD%93" target="_blank" rel="noopener nofollow"><div class="bt"><b>8Ω 2W 喇叭带腔体</b><span class="bp">¥5–15</span></div><div class="bs">一定要带腔体。裸喇叭装进盒子声音发闷，差这几块钱不值当。</div><span class="bc">淘宝搜索</span></a>
+          <a class="buy-item" href="https://s.taobao.com/search?q=max9814%20%E9%BA%A6%E5%85%8B%E9%A3%8E%20%E6%94%BE%E5%A4%A7%E6%A8%A1%E5%9D%97" target="_blank" rel="noopener nofollow"><div class="bt"><b>MAX9814 麦克风放大</b><span class="bp">¥10–22</span></div><div class="bs">带 AGC，模拟麦克风接 ADC 时用它；比裸驻极体好调太多。</div><span class="bc">淘宝搜索</span></a>
+        </div>
+      </div>
+
+      <div class="buy-g" data-g="power">
+        <div class="buy-g-h"><b>电源、辅材与工具</b><span>11 件 / 新手九成翻车在这</span></div>
+        <div class="buy-grid">
+          <a class="buy-item" href="https://s.taobao.com/search?q=usb-c%20%E6%95%B0%E6%8D%AE%E7%BA%BF%203a%20%E5%BF%AB%E5%85%85" target="_blank" rel="noopener nofollow"><div class="bt"><b>USB-C 数据线（能传数据）</b><span class="bp">¥8–20</span></div><div class="bs">只能充电的线会让你以为板子坏了。买标注 3A 数据线，多备两根。</div><span class="bc">淘宝搜索</span></a>
+          <a class="buy-item" href="https://s.taobao.com/search?q=5v%202a%20%E7%94%B5%E6%BA%90%E9%80%82%E9%85%8D%E5%99%A8%20type-c" target="_blank" rel="noopener nofollow"><div class="bt"><b>5V/2A 电源适配器</b><span class="bp">¥12–26</span></div><div class="bs">带屏幕或摄像头时 USB 口供电不够，会随机重启。直接上适配器。</div><span class="bc">淘宝搜索</span></a>
+          <a class="buy-item" href="https://s.taobao.com/search?q=tp4056%20%E5%85%85%E7%94%B5%E6%A8%A1%E5%9D%97%20%E5%B8%A6%E4%BF%9D%E6%8A%A4" target="_blank" rel="noopener nofollow"><div class="bt"><b>TP4056 充电板（带保护）</b><span class="bp">¥2–7</span></div><div class="bs">给锂电池充电。必须买带 DW01 保护的版本，裸板过放就废。</div><span class="bc">淘宝搜索</span></a>
+          <a class="buy-item" href="https://s.taobao.com/search?q=18650%20%E9%94%82%E7%94%B5%E6%B1%A0%203.7v%20%E5%B8%A6%E4%BF%9D%E6%8A%A4" target="_blank" rel="noopener nofollow"><div class="bt"><b>3.7V 锂电池（18650 / 软包）</b><span class="bp">¥10–32</span></div><div class="bs">便携项目供电。别买无保护电芯，也别买来路不明的拆机货。</div><span class="bc">淘宝搜索</span></a>
+          <a class="buy-item" href="https://s.taobao.com/search?q=3.3v%20%E9%99%8D%E5%8E%8B%E6%A8%A1%E5%9D%97%20ams1117%20mp1584" target="_blank" rel="noopener nofollow"><div class="bt"><b>3.3V 降压模块</b><span class="bp">¥2–9</span></div><div class="bs">AMS1117 简单但发热，MP1584 效率高。按实际电流选，别按标称。</div><span class="bc">淘宝搜索</span></a>
+          <a class="buy-item" href="https://s.taobao.com/search?q=%E6%9D%9C%E9%82%A6%E7%BA%BF%2020cm%20%E5%A5%97%E8%A3%85%20%E5%BD%A9%E8%89%B2" target="_blank" rel="noopener nofollow"><div class="bt"><b>杜邦线 20cm 一套</b><span class="bp">¥5–13</span></div><div class="bs">母对母、公对母、公对公各一把。接触不良的杜邦线是玄学 bug 的头号来源。</div><span class="bc">淘宝搜索</span></a>
+          <a class="buy-item" href="https://s.taobao.com/search?q=%E9%9D%A2%E5%8C%85%E6%9D%BF%20830%20%E5%AD%94" target="_blank" rel="noopener nofollow"><div class="bt"><b>面包板 830 孔</b><span class="bp">¥6–16</span></div><div class="bs">免焊验证电路，配杜邦线就是最快的原型手段。</div><span class="bc">淘宝搜索</span></a>
+          <a class="buy-item" href="https://s.taobao.com/search?q=%E8%B4%B4%E7%89%87%20%E7%94%B5%E9%98%BB%20%E7%94%B5%E5%AE%B9%20%E6%A0%B7%E5%93%81%E6%9C%AC%200603" target="_blank" rel="noopener nofollow"><div class="bt"><b>贴片电阻电容样品本</b><span class="bp">¥15–40</span></div><div class="bs">0603 或 0805 各一本。省得为两个电阻凑单，也省一周等快递。</div><span class="bc">淘宝搜索</span></a>
+          <a class="buy-item" href="https://s.taobao.com/search?q=usb%20ttl%20ch340%20ch343%20%E4%B8%B2%E5%8F%A3%E6%A8%A1%E5%9D%97" target="_blank" rel="noopener nofollow"><div class="bt"><b>USB-TTL 串口模块</b><span class="bp">¥10–26</span></div><div class="bs">CH343 或 CP2102。刷 ESP32-CAM、看启动日志、救砖都靠它。</div><span class="bc">淘宝搜索</span></a>
+          <a class="buy-item" href="https://s.taobao.com/search?q=%E9%80%BB%E8%BE%91%E5%88%86%E6%9E%90%E4%BB%AA%208%E9%80%9A%E9%81%93%2024m" target="_blank" rel="noopener nofollow"><div class="bt"><b>8 通道逻辑分析仪</b><span class="bp">¥25–65</span></div><div class="bs">24MHz 采样，够看 I2C / SPI / 单总线。比示波器便宜一个数量级。</div><span class="bc">淘宝搜索</span></a>
+          <a class="buy-item" href="https://s.taobao.com/search?q=%E6%81%92%E6%B8%A9%E7%83%99%E9%93%81%20t12%20%E5%A5%97%E8%A3%85" target="_blank" rel="noopener nofollow"><div class="bt"><b>恒温烙铁 + 焊锡</b><span class="bp">¥80–220</span></div><div class="bs">焊排针、模组、飞线都要它。T12 或 TS101 这类便携款即可。</div><span class="bc">淘宝搜索</span></a>
+        </div>
+      </div>
+    </div>
+
+    <div class="note">
+      <p><b>为什么给搜索页，不给商品链接。</b> 淘宝商品 ID 换一次就变，收藏夹点开是「商品已下架」；搜索词永远有效，还能顺手比价、看销量。</p>
+      <p><b>怎么搜才准。</b> 用「型号 + 关键参数」：<span class="mono">esp32-s3 n16r8</span>、<span class="mono">st7789 2.4 spi</span>、<span class="mono">sht30 i2c</span>。搜「ESP32 开发板」这种大词，前面全是九块九的玩具板。</p>
+      <p><b>裸芯片和模组走元件渠道。</b> 立创商城（szlcsc.com）按料号能查库存和 datasheet；淘宝买模组更便宜，但版本和翻新件杂。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 资源库 ============ -->
+<section class="band dark" id="res">
+  <div class="wrap">
+    <div class="hd">
+      <div>
+        <div class="kicker">资源库 / LINKS</div>
+        <h2>资源库：只留真的会点开的</h2>
+        <p class="desc">搜标题或描述过滤。带「中」标记的有中文内容。</p>
+      </div>
+    </div>
+
+    <div class="search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      <input id="resSearch" type="search" placeholder="搜索：文档 / 组件 / 仿真 / 论坛 / 视频" autocomplete="off" aria-label="搜索资源">
+    </div>
+    <div class="filters" id="resFilters">
+      <button class="on" type="button" data-rf="all">全部</button>
+      <button type="button" data-rf="doc">文档</button>
+      <button type="button" data-rf="tool">工具</button>
+      <button type="button" data-rf="comm">社区</button>
+      <button type="button" data-rf="cn">中文</button>
+    </div>
+
+    <div class="rows" id="resList">
+      <div class="row" data-k="doc cn"><div class="ix"><span class="res-ico">CLAW</span></div><div><a class="t" href="https://github.com/espressif/esp-claw" target="_blank" rel="noopener">ESP-Claw / 官方 Agent 框架（中文 README）</a><p class="d">乐鑫自己做的边缘 Agent Runtime：聊天造物、Lua 动态执行、MCP 双身份。想搞懂「设备端 Agent」长什么样，读这份源码比看十篇公众号快。</p></div></div>
+      <div class="row" data-k="doc cn"><div class="ix"><span class="res-ico">XZ</span></div><div><a class="t" href="https://xiaozhi.me/home/zh/" target="_blank" rel="noopener">小智 AI / 官方站与烧录入口</a><p class="d">硬件清单、网页一键烧录、控制台配置都在这。先在这里把设备跑通，再回头读源码。</p></div></div>
+      <div class="row" data-k="doc cn"><div class="ix"><span class="res-ico">DOC</span></div><div><a class="t" href="https://docs.espressif.com/projects/esp-idf/zh_CN/latest/esp32/" target="_blank" rel="noopener">ESP-IDF 编程指南（中文）</a><p class="d">一切官方 API 的源头。左侧目录按「外设 / 协议 / 系统」分区，别用站内搜索，用它。</p></div></div>
+      <div class="row" data-k="doc"><div class="ix"><span class="res-ico">GIT</span></div><div><a class="t" href="https://github.com/espressif/esp-idf" target="_blank" rel="noopener">esp-idf / 源码与本版发布说明</a><p class="d">查「这个 API 什么时候改的」的唯一可靠方式：翻 release notes 和迁移指南。</p></div></div>
+      <div class="row" data-k="doc tool cn"><div class="ix"><span class="res-ico">ARD</span></div><div><a class="t" href="https://github.com/espressif/arduino-esp32" target="_blank" rel="noopener">arduino-esp32 / core 3.x</a><p class="d">3.x 的 breaking changes 都在 Migration Guide 里，升级前必读。</p></div></div>
+      <div class="row" data-k="doc cn"><div class="ix"><span class="res-ico">SOC</span></div><div><a class="t" href="https://www.espressif.com/zh-hans/products/socs" target="_blank" rel="noopener">乐鑫 SoC / 模组产品页</a><p class="d">看真实规格书，别信淘宝标题。每款都有 datasheet、TRM、硬件设计指南。</p></div></div>
+      <div class="row" data-k="doc"><div class="ix"><span class="res-ico">REG</span></div><div><a class="t" href="https://components.espressif.com/" target="_blank" rel="noopener">IDF Component Registry</a><p class="d">IDF 的 npm。BME688、LVGL、esp_lcd 驱动都从这拉，带语义化版本。</p></div></div>
+      <div class="row" data-k="tool"><div class="ix"><span class="res-ico">SIM</span></div><div><a class="t" href="https://wokwi.com/" target="_blank" rel="noopener">Wokwi / 浏览器仿真</a><p class="d">没有板子也能跑。支持 S3 / C6，能测 I2C 多路复用和基础 FreeRTOS 调度。</p></div></div>
+      <div class="row" data-k="tool"><div class="ix"><span class="res-ico">PIO</span></div><div><a class="t" href="https://platformio.org/" target="_blank" rel="noopener">PlatformIO</a><p class="d">platformio.ini 里改一行 framework 就能在 IDF / Arduino 之间切。</p></div></div>
+      <div class="row" data-k="tool"><div class="ix"><span class="res-ico">ESH</span></div><div><a class="t" href="https://esphome.io/" target="_blank" rel="noopener">ESPHome 文档</a><p class="d">YAML 写设备。每个组件页都标了支持哪些芯片，买板前先在这查。</p></div></div>
+      <div class="row" data-k="tool"><div class="ix"><span class="res-ico">MPY</span></div><div><a class="t" href="https://micropython.org/download/" target="_blank" rel="noopener">MicroPython 固件下载</a><p class="d">按芯片选 .bin，esptool 一行刷入，然后 mpremote 直连 REPL。</p></div></div>
+      <div class="row" data-k="tool"><div class="ix"><span class="res-ico">ESP</span></div><div><a class="t" href="https://github.com/espressif/esptool" target="_blank" rel="noopener">esptool</a><p class="d">刷机、读 Flash ID、擦除、救砖。命令行比 GUI 工具可靠。</p></div></div>
+      <div class="row" data-k="doc"><div class="ix"><span class="res-ico">ADF</span></div><div><a class="t" href="https://github.com/espressif/esp-adf" target="_blank" rel="noopener">ESP-ADF / 音频框架</a><p class="d">做播放器、对讲、语音前端时用它，别自己拼 I2S。</p></div></div>
+      <div class="row" data-k="doc"><div class="ix"><span class="res-ico">RNT</span></div><div><a class="t" href="https://randomnerdtutorials.com/projects-esp32/" target="_blank" rel="noopener">Random Nerd Tutorials / ESP32 项目库</a><p class="d">英文图文为主，国内可直连，不需要任何网络条件。ESP32 项目数量全网最多，每篇配接线图和可直接编译的完整代码。</p></div></div>
+      <div class="row" data-k="doc"><div class="ix"><span class="res-ico">MAT</span></div><div><a class="t" href="https://github.com/espressif/esp-matter" target="_blank" rel="noopener">esp-matter SDK</a><p class="d">Matter 设备的官方入口，配 C6 才有意义。</p></div></div>
+      <div class="row" data-k="comm cn"><div class="ix"><span class="res-ico">FAQ</span></div><div><a class="t" href="https://docs.espressif.com/projects/esp-faq/zh_CN/latest/" target="_blank" rel="noopener">ESP-FAQ（中文）</a><p class="d">官方把高频问题整理成册。编译报错、Wi-Fi 掉线先来这搜。</p></div></div>
+      <div class="row" data-k="comm"><div class="ix"><span class="res-ico">BB</span></div><div><a class="t" href="https://esp32.com/" target="_blank" rel="noopener">ESP32 官方论坛</a><p class="d">工程师对工程师。提问前先搜，乐鑫自己的 FAE 会回。</p></div></div>
+      <div class="row" data-k="comm"><div class="ix"><span class="res-ico">JRN</span></div><div><a class="t" href="https://blog.espressif.com/" target="_blank" rel="noopener">The ESP Journal</a><p class="d">乐鑫工程师的最佳实践与技术随笔，比文档更接近「怎么想」。</p></div></div>
+      <div class="row" data-k="comm cn"><div class="ix"><span class="res-ico">WIKI</span></div><div><a class="t" href="https://www.waveshare.net/wiki/" target="_blank" rel="noopener">微雪 Wiki（中文）</a><p class="d">买他家板子必看：引脚图、例程、屏幕驱动都在这，更新很勤。</p></div></div>
+      <div class="row" data-k="comm cn"><div class="ix"><span class="res-ico">OSH</span></div><div><a class="t" href="https://oshwhub.com/" target="_blank" rel="noopener">立创开源硬件平台（中文）</a><p class="d">找别人验证过的 ESP32 原理图与 PCB，省掉第一版画错板。</p></div></div>
+      <div class="row" data-k="comm"><div class="ix"><span class="res-ico">RED</span></div><div><a class="t" href="https://www.reddit.com/r/esp32/" target="_blank" rel="noopener">r/esp32</a><p class="d">英文社区里活跃度最高的。硬件选型与踩坑讨论质量不错。</p></div></div>
+      <div class="row" data-k="comm"><div class="ix"><span class="res-ico">CNX</span></div><div><a class="t" href="https://www.cnx-software.com/" target="_blank" rel="noopener">CNX Software</a><p class="d">新板、新芯片、众筹项目的首发报道地，追新必看。</p></div></div>
+      <div class="row" data-k="doc"><div class="ix"><span class="res-ico">ARD</span></div><div><a class="t" href="https://docs.espressif.com/projects/arduino-esp32/en/latest/" target="_blank" rel="noopener">arduino-esp32 官方 API 文档</a><p class="d">Arduino 层的函数签名与示例。找「这个函数在 3.x 里叫什么」来这。</p></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 代码 ============ -->
+<section class="band light" id="code">
+  <div class="wrap">
+    <div class="hd">
+      <div>
+        <div class="kicker">代码 / CODE</div>
+        <h2>能直接抄的七段代码</h2>
+        <p class="desc">Arduino core 3.x / ESP-IDF 5.5 语法。每段都是最小可用版本，复制过去改引脚就能跑。</p>
+      </div>
+    </div>
+    <div class="cards g2">
+      <div class="codebox">
+        <div class="codebar"><span class="fn">wifi_hello.ino</span><span>Arduino core 3.x</span></div>
+<pre>// 连 Wi-Fi + 每 2 秒打印一次 IP 与 RSSI
+#include &lt;WiFi.h&gt;
+
+const char* SSID     = "your-ssid";
+const char* PASSWORD = "your-pass";
+
+void setup() {
+  Serial.begin(115200);
+  WiFi.mode(WIFI_STA);
+  WiFi.setSleep(false);        // 关省电，延迟更稳
+  WiFi.begin(SSID, PASSWORD);
+
+  uint32_t t0 = millis();
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(300);
+    if (millis() - t0 &gt; 15000) {   // 超时就重启，别死等
+      Serial.println("wifi timeout, reboot");
+      ESP.restart();
+    }
+  }
+  Serial.printf("IP: %s\n", WiFi.localIP().toString().c_str());
+}
+
+void loop() {
+  Serial.printf("RSSI %d dBm\n", WiFi.RSSI());
+  delay(2000);
+}</pre>
+      </div>
+      <div class="codebox">
+        <div class="codebar"><span class="fn">deep_sleep.ino</span><span>定时唤醒，10 µA 级待机</span></div>
+<pre>// 采样 → 上报 → 睡 60 秒 → 循环
+#define BUTTON_PIN 0
+
+void setup() {
+  Serial.begin(115200);
+  delay(100);
+  Serial.println("wake up");
+
+  // 关键：把所有不用的外设彻底断电/隔离，否则漏电流会吃掉收益
+  gpio_hold_en((gpio_num_t)BUTTON_PIN);
+  esp_sleep_enable_ext0_wakeup((gpio_num_t)BUTTON_PIN, 0);
+  esp_sleep_enable_timer_wakeup(60ULL * 1000000);
+  esp_deep_sleep_start();   // 不会再返回 loop()
+}
+
+void loop() {}</pre>
+      </div>
+      <div class="codebox">
+        <div class="codebar"><span class="fn">cmds.sh</span><span>高频命令速查</span></div>
+<pre># ---- ESP-IDF 5.x ----
+idf.py create-project hello_esp
+idf.py set-target esp32s3      # 换芯片会重置 sdkconfig
+idf.py menuconfig              # 串口/分区表/组件都在这
+idf.py build
+idf.py -p COM5 flash monitor   # Linux: /dev/ttyUSB0
+idf.py size-components         # 谁在吃 flash
+idf.py fullclean               # 玄学编译错误先来这个
+
+# ---- Arduino CLI ----
+arduino-cli core install esp32:esp32
+arduino-cli compile --fqbn esp32:esp32:esp32s3 .
+arduino-cli upload  --fqbn esp32:esp32:esp32s3 -p COM5 .
+
+# ---- esptool（救砖三连）----
+esptool.py --chip esp32s3 -p COM5 erase_flash
+esptool.py --chip esp32s3 -p COM5 flash_id
+esptool.py --chip esp32s3 -p COM5 write_flash 0x0 firmware.bin</pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 踩坑 ============ -->
+<section class="band dark" id="pit">
+  <div class="wrap">
+    <div class="hd">
+      <div>
+        <div class="kicker">踩坑 / PITFALLS</div>
+        <h2>踩坑清单：这十条能省你两个周末</h2>
+        <p class="desc">都是「现象 → 原因」的形式，方便你按症状反查。</p>
+      </div>
+    </div>
+    <div>
+      <div class="warnrow"><div class="w">!</div><div><b>烧完串口全是乱码。</b> 波特率不对（日志默认 115200），或者供电不足导致芯片反复复位。换根能传数据的 USB 线，别用只能充电的。</div></div>
+      <div class="warnrow"><div class="w">!</div><div><b>一直停在 "Connecting..."。</b> 手动按住 BOOT 再点 RESET 进下载模式；驱动没装（CH340 / CP210x / CH343 各不相同）也会这样。</div></div>
+      <div class="warnrow"><div class="w">!</div><div><b>GPIO 6–11 用了就死机。</b> 这几根接着内部 SPI Flash，初代 ESP32 上绝对不能用。选引脚前先查对应型号的引脚表。</div></div>
+      <div class="warnrow"><div class="w">!</div><div><b>ADC 一开 Wi-Fi 读数就飘。</b> 初代 ESP32 的 ADC2 与 Wi-Fi 共用硬件，联网时不可用。要测模拟量就用 ADC1（GPIO32–39）。</div></div>
+      <div class="warnrow"><div class="w">!</div><div><b>5V 接到了 3.3V 引脚。</b> 当场烧。板子上有 5V/VIN 和 3V3 两个丝印，接线前看两遍。烧了别急着扔，多数是稳压器，能换。</div></div>
+      <div class="warnrow"><div class="w">!</div><div><b>OTA 一直失败。</b> 默认分区表只有一个 app 分区，放不下第二份固件。要在 menuconfig 里改成 "Factory app, two OTA definitions"。</div></div>
+      <div class="warnrow"><div class="w">!</div><div><b>S3 买了 8MB PSRAM 却只剩一点。</b> 8MB 是 octal 模式，必须显式开启（ESPHome 里 psram mode octal，IDF 里改 sdkconfig），否则默认不启用。</div></div>
+      <div class="warnrow"><div class="w">!</div><div><b>Wi-Fi 隔一会儿就断。</b> 默认开了 modem sleep。要长连接就 WiFi.setSleep(false)，代价是功耗上升。另外关掉路由器里的「节能/802.11 省电」试试。</div></div>
+      <div class="warnrow"><div class="w">!</div><div><b>信号差、距离短。</b> 板载 PCB 天线怕金属和手。装进金属盒必须换外置天线（IPEX/U.FL），并且天线净空区不能铺铜。</div></div>
+      <div class="warnrow"><div class="w">!</div><div><b>深度睡眠还是耗电几十 mA。</b> 睡眠前没把外设断电、没做引脚 hold，传感器和 LDO 继续吃电。要逐项隔离测量，别信数据手册的 typ 值。</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 术语 ============ -->
+<section class="band light" id="gloss">
+  <div class="wrap">
+    <div class="hd">
+      <div>
+        <div class="kicker">术语 / GLOSSARY</div>
+        <h2>术语速查</h2>
+        <p class="desc">看文档时被这些缩写卡住的话，回来查一眼。</p>
+      </div>
+    </div>
+    <div class="gl">
+      <div><b>SoC / 模组 / 开发板</b>芯片本体 / 芯片+晶振+天线+屏蔽罩 / 模组+USB+稳压+排针。买「开发板」最省事，做产品用「模组」。</div>
+      <div><b>PSRAM</b>片外伪静态内存。跑 LVGL、摄像头帧缓冲、语音缓冲必需。型号里 R8 就是 8MB。</div>
+      <div><b>NVS</b>非易失存储，类似小 KV 数据库。存 Wi-Fi 密码、校准值、设备配置。</div>
+      <div><b>OTA</b>空中升级。需要双 app 分区 + 回滚标记，别只做「能刷进去」。</div>
+      <div><b>Matter / Thread</b>跨品牌智能家居应用层 / 低功耗网状网络层。C6 是单芯片同时支持的那颗。</div>
+      <div><b>ESP-NOW</b>乐鑫私有 2.4G 点对点协议，不需要路由器，延迟毫秒级，适合遥控与传感网。</div>
+      <div><b>RMT</b>红外/WS2812 用的精确脉冲外设。驱动灯带比软件延时可靠得多。</div>
+      <div><b>I2S</b>数字音频总线。麦克风、功放、DAC 都走它。做语音项目第一个要搞懂的。</div>
+      <div><b>TWAI</b>ESP-IDF 里的 CAN 总线驱动名。车上/工业场景用。</div>
+      <div><b>eFuse</b>一次性熔断位。安全启动、Flash 加密、MAC 都存在这，熔了不可逆。</div>
+      <div><b>看门狗 (TWDT)</b>任务超时未喂狗就复位。长循环里记得 vTaskDelay 或喂狗。</div>
+      <div><b>menuconfig</b>IDF 的图形化配置树，产出 sdkconfig。串口、分区表、组件开关都在这。</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 来源 ============ -->
+<section class="band dark" id="src">
+  <div class="wrap">
+    <div class="hd">
+      <div>
+        <div class="kicker">来源 / SOURCES</div>
+        <h2>资料来源</h2>
+        <p class="desc">版本号与参数以这些来源为准。本页整理于 2026-11-24。</p>
+      </div>
+    </div>
+    <div class="src">
+      <a href="https://release-notes.espressif.com/" target="_blank" rel="noopener">Espressif Release Notes（IDF 6.1 / LTS 5.5.6）</a>
+      <a href="https://github.com/espressif/arduino-esp32/releases" target="_blank" rel="noopener">arduino-esp32 releases（core 3.3.12）</a>
+      <a href="https://www.espressif.com/zh-hans/products/socs" target="_blank" rel="noopener">乐鑫 SoC 产品页（架构/主频/射频）</a>
+      <a href="https://jlcpcb.com/blog/esp32-versions-guide" target="_blank" rel="noopener">JLCPCB / ESP32 Versions Guide</a>
+      <a href="https://thequantumdispatch.com/articles/which-esp32-variant-to-choose-guide" target="_blank" rel="noopener">Which ESP32 Variant to Choose (2026)</a>
+      <a href="https://www.elecrow.com/blog/7-esp32-display-projects-crowpanel-ideas-for-smart-home-and-dashboards.html" target="_blank" rel="noopener">Elecrow / 7 ESP32 Display Projects</a>
+      <a href="https://www.cnx-software.com/" target="_blank" rel="noopener">CNX Software / EKOS ePaper 看板</a>
+      <a href="https://esp32.diy/esphome-touch-display-mount" target="_blank" rel="noopener">ESP32.diy / ESPHome 触摸面板</a>
+      <a href="https://esp-32.cn/esp32-p4-10inch-environment-monitor" target="_blank" rel="noopener">ESP-32.cn / P4 环境监测中枢</a>
+      <a href="https://docs.espressif.com/" target="_blank" rel="noopener">Espressif 文档中心</a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <div>ESP32 全景手册 / 静态单页，无外部依赖 / 整理于 2026-11</div>
+    <div>板子会换，判据不变：先问「要连什么」，再问「要多快」。</div>
+  </div>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---- EN 首屏切换 ---- */
+  var lang = 'zh';
+  var langSw = document.getElementById('langSw');
+  langSw.addEventListener('click', function(){
+    lang = (lang === 'zh') ? 'en' : 'zh';
+    langSw.textContent = (lang === 'zh') ? 'EN' : '中';
+    document.documentElement.lang = (lang === 'zh') ? 'zh-CN' : 'en';
+    var nodes = document.querySelectorAll('[data-en]');
+    for (var i = 0; i < nodes.length; i++) {
+      var el = nodes[i];
+      if (lang === 'en') {
+        if (!el.hasAttribute('data-zh')) el.setAttribute('data-zh', el.innerHTML);
+        el.innerHTML = el.getAttribute('data-en');
+      } else {
+        el.innerHTML = el.getAttribute('data-zh');
+      }
+    }
+  });
+
+  /* ---- 芯片表分类筛选 ---- */
+  var chipBtns = document.querySelectorAll('#chipFilters button');
+  var chipRows = document.querySelectorAll('#chipTable tbody tr');
+  for (var a = 0; a < chipBtns.length; a++) {
+    chipBtns[a].addEventListener('click', function(){
+      for (var x = 0; x < chipBtns.length; x++) chipBtns[x].classList.remove('on');
+      this.classList.add('on');
+      var g = this.getAttribute('data-f');
+      for (var y = 0; y < chipRows.length; y++) {
+        chipRows[y].style.display = (g === 'all' || chipRows[y].getAttribute('data-g') === g) ? '' : 'none';
+      }
+    });
+  }
+
+  /* ---- 采购清单分组筛选 ---- */
+  var buyBtns = document.querySelectorAll('#buyFilters button');
+  var buyGroups = document.querySelectorAll('#buyList .buy-g');
+  for (var b = 0; b < buyBtns.length; b++) {
+    buyBtns[b].addEventListener('click', function(){
+      for (var x = 0; x < buyBtns.length; x++) buyBtns[x].classList.remove('on');
+      this.classList.add('on');
+      var g = this.getAttribute('data-bf');
+      for (var y = 0; y < buyGroups.length; y++) {
+        buyGroups[y].style.display = (g === 'all' || buyGroups[y].getAttribute('data-g') === g) ? '' : 'none';
+      }
+    });
+  }
+
+  /* ---- 资源库搜索 + 分类筛选 ---- */
+  var resBtns = document.querySelectorAll('#resFilters button');
+  var resRows = document.querySelectorAll('#resList .row');
+  var resSearch = document.getElementById('resSearch');
+  var resCat = 'all';
+  function filterRes(){
+    var q = (resSearch.value || '').toLowerCase().trim();
+    for (var i = 0; i < resRows.length; i++) {
+      var row = resRows[i];
+      var k = row.getAttribute('data-k');
+      var okCat = (resCat === 'all' || k.indexOf(resCat) !== -1);
+      var okQ = (!q || row.textContent.toLowerCase().indexOf(q) !== -1);
+      row.style.display = (okCat && okQ) ? '' : 'none';
+    }
+  }
+  for (var c = 0; c < resBtns.length; c++) {
+    resBtns[c].addEventListener('click', function(){
+      for (var x = 0; x < resBtns.length; x++) resBtns[x].classList.remove('on');
+      this.classList.add('on');
+      resCat = this.getAttribute('data-rf');
+      filterRes();
+    });
+  }
+  resSearch.addEventListener('input', filterRes);
+
+  /* ---- 三步选择器（内容来自真实站点） ---- */
+  var pick = { purpose: null, bt: 'any', scale: 'proto' };
+  var DB = {
+    learn: {
+      chip: 'ESP32-S3', board: 'ESP32-S3-DevKitC-1（N16R8）',
+      fw: 'Arduino core 3.x 起步，第 5 周后切 ESP-IDF',
+      why: 'S3 的资料、库和案例最多，且和经典 ESP32 的 Arduino 代码几乎通用。买 N16R8 是为了以后想加屏或语音时不用换板。',
+      traps: '别买成 C3 —— 它没有 PSRAM，很多教程示例会直接跑不动。'
+    },
+    cheap: {
+      chip: 'ESP32-C3', board: 'ESP32-C3 SuperMini / C3 模组',
+      fw: 'Arduino core 3.x 或 ESP-IDF，两者都轻',
+      why: 'RISC-V 单核 160 MHz + 400 KB SRAM，联网加几个 IO 足够，成本是全家族里最低的一档。',
+      traps: '没有 PSRAM，别指望跑大屏、摄像头或语音；GPIO 数量也少，规划好再画板。'
+    },
+    display: {
+      chip: 'ESP32-S3', board: '微雪 ESP32-S3-LCD / 正点原子 S3 BOX / CYD',
+      fw: 'Arduino + LVGL，或 ESPHome + LVGL（接 Home Assistant）',
+      why: 'S3 双核 240 MHz + 8 MB PSRAM，跑 LVGL 磁贴界面和局部刷新都够。5 寸以下用 S3 性价比最好。',
+      traps: 'PSRAM 必须开 octal 模式才算数；屏幕驱动要选对型号（ST7789 / ILI9341 / ST7701 各不相同）。'
+    },
+    bigdisp: {
+      chip: 'ESP32-P4', board: 'CrowPanel Advanced 10.1″ / 9″ P4 HMI',
+      fw: 'ESP-IDF + LVGL（EEZ Studio 画界面）',
+      why: 'P4 双核 400 MHz、768 KB SRAM、支持大容量 PSRAM 与 MIPI，7 寸以上的多层界面才不卡；还带 H.264 硬件编码。',
+      traps: 'P4 没有 Wi-Fi 和蓝牙，联网必须外加 C6/C5/C61 当无线协处理器 —— 这是一颗 CPU，不是 SoC。'
+    },
+    vision: {
+      chip: 'ESP32-S3', board: 'ESP32-S3 + OV5640 / ESP32-CAM（练手）',
+      fw: 'ESP-IDF（esp32-camera 组件）或 Arduino',
+      why: 'S3 的向量指令是端侧 AI 的关键，图像识别、唤醒词在它上面才是「能用」而不是「能跑」。',
+      traps: '摄像头吃带宽和内存，务必带 PSRAM；ESP32-CAM 是玩具板，不适合做产品。'
+    },
+    audio: {
+      chip: 'ESP32-S3', board: 'S3 N16R8 核心板 / 小智 AI 套件',
+      fw: 'ESP-IDF + ESP-ADF，或直接用社区小智固件',
+      why: '语音链路的瓶颈是内存和 I2S 带宽，S3 的 8 MB PSRAM 是硬门槛；同时它还能同时驱动一块表情屏。',
+      traps: '麦克风与功放的选型、供电纹波对体验影响极大。别用 C3 —— 无 PSRAM，跑不动。'
+    },
+    matter: {
+      chip: 'ESP32-C6', board: 'ESP32-C6-DevKitC-1',
+      fw: 'esp-matter SDK（ESP-IDF 之上）',
+      why: 'C6 是首颗把 Wi-Fi 6、Zigbee 3.0、Thread 1.3 放进同一 die 的芯片。做 Matter 设备用它就不需要第二颗射频。',
+      traps: '依赖 Arduino 库的旧配置在 C6 上会编不过，买板前先在目标框架的文档里确认支持。'
+    },
+    battery: {
+      chip: 'ESP32-H2', board: 'ESP32-H2-DevKitM-1',
+      fw: 'ESP-IDF（原生电源管理 API）',
+      why: '无 Wi-Fi 射频 + 96 MHz 主频 = 全家族最低功耗。已有 Thread/Zigbee 网关时，纽扣电池传感器只有它合适。',
+      traps: '它连不上 Wi-Fi，别指望它直连路由器；如果家里没有 Thread 边界路由器，这条路线走不通。'
+    }
+  };
+  function refine(base, bt, scale){
+    var chip = base.chip, why = base.why, traps = base.traps, fw = base.fw, board = base.board;
+    if (bt === 'need' && chip === 'ESP32-H2') {
+      chip = 'ESP32-C6';
+      why = 'H2 没有 Wi-Fi 但有 BLE，若你还需要配网或蓝牙外设，C6 是同时带 Wi-Fi 6 + BLE 5.3 + 15.4 的那颗。';
+      board = 'ESP32-C6-DevKitC-1';
+    }
+    if (bt === 'no' && chip === 'ESP32-S3') {
+      why += ' 你不需要蓝牙 —— 那 S3 依然合适（它没有 Classic BT，只有 BLE）。';
+    }
+    if (scale === 'mass') {
+      traps += ' 走量时改用乐鑫认证模组（如 WROOM / WROOM-1 系列），不要直接拿开发板做产品：认证、阻抗匹配、ESD 都要重新过。';
+    }
+    return { chip: chip, board: board, fw: fw, why: why, traps: traps };
+  }
+  function renderWz(){
+    var out = document.getElementById('wzOut');
+    if (!pick.purpose) { out.innerHTML = '<div class="mini">选一项 Q1，结果会出现在这里。</div>'; return; }
+    var r = refine(DB[pick.purpose], pick.bt, pick.scale);
+    out.innerHTML =
+      '<div class="rn">' + r.chip + '<small>推荐</small></div>' +
+      '<p>' + r.why + '</p>' +
+      '<dl>' +
+        '<dt>第一块板</dt><dd>' + r.board + '</dd>' +
+        '<dt>开发框架</dt><dd>' + r.fw + '</dd>' +
+        '<dt>要小心</dt><dd>' + r.traps + '</dd>' +
+      '</dl>';
+  }
+  var groups = document.querySelectorAll('.opts');
+  for (var g = 0; g < groups.length; g++) {
+    groups[g].addEventListener('click', function(e){
+      var target = e.target;
+      while (target && target !== this && target.tagName !== 'BUTTON') target = target.parentNode;
+      if (!target || target === this || target.tagName !== 'BUTTON') return;
+      var btns = this.querySelectorAll('button');
+      for (var i = 0; i < btns.length; i++) btns[i].classList.remove('on');
+      target.classList.add('on');
+      pick[this.getAttribute('data-key')] = target.getAttribute('data-v');
+      renderWz();
+    });
+  }
+})();
+</script>
+</body>
+</html>
