@@ -287,7 +287,7 @@ class TestInteractiveContracts(unittest.TestCase):
             tokens.update(m.split())
         self.assertIn("all", btns)
         self.assertEqual(tokens - btns, set(), "资源 data-k 词没有对应筛选按钮")
-        self.assertEqual(len(items), 23, "资源库数量应为 23")
+        self.assertEqual(len(items), 26, "资源库数量应为 26")
 
     def test_res_items_have_k(self):
         res_blocks = re.findall(r'<(div|a)[^>]*class="res[" ][^>]*>', SRC)
@@ -325,6 +325,71 @@ class TestInteractiveContracts(unittest.TestCase):
                          len(re.findall(r'class="[^"]*codebox', SRC)),
                          ".cp 与 .codebox 数量应一一对应")
         self.assertGreaterEqual(SRC.count("codebox"), 6)
+
+
+class TestNeedleContent(unittest.TestCase):
+    """Needle 2 第三路线：事实边界、置信度路由、i18n、资源与术语。"""
+
+    def _a10(self):
+        m = re.search(r'<div data-l10n="A10">(.*?)\n    </div>', SRC, re.S)
+        self.assertIsNotNone(m, "缺少 data-l10n=A10 块")
+        return m.group(1)
+
+    def test_a10_block_present(self):
+        blk = self._a10()
+        self.assertIn("Needle 2", blk)
+        for token in ("45M", "14MB", "28MB"):
+            self.assertIn(token, blk)
+
+    def test_three_routes_compared(self):
+        blk = self._a10()
+        for token in ("小智 AI", "ESP-Claw", "Needle 2", "断网时"):
+            self.assertIn(token, blk)
+
+    def test_confidence_routing_code(self):
+        blk = self._a10()
+        for token in ("confidence_route.py", "confidence", "suppressed_calls",
+                      "escalate_to_cloud", "confirm("):
+            self.assertIn(token, blk)
+
+    def test_honest_bounds(self):
+        blk = self._a10()
+        for token in ("ESP32-P4", "32MB PSRAM", "1.86 tok/s", "40 秒",
+                      "legacy", "cactus-compute&lt;4", "Needle 3", "13 个部署目标"):
+            self.assertIn(token, blk)
+
+    def test_needle_links_in_a10(self):
+        blk = self._a10()
+        for u in ("github.com/cactus-compute/cactus/tree/legacy",
+                  "cactuscompute.com/blog/needle-2",
+                  "cactuscompute.com/blog/needle-supported-devices"):
+            self.assertIn(u, blk)
+
+    def test_a10_en_block(self):
+        en = get_i18n()["b"]["A10"]
+        for token in ("Needle 2", "14 MB", "28 MB", "ESP32-P4",
+                      "confidence", "legacy", "It does not chat"):
+            self.assertIn(token, en)
+        self.assertNotRegex(en, r"[\u4e00-\u9fff]", "英文 A10 块残留中文")
+
+    def test_glossary_entries(self):
+        b = get_i18n()["b"]
+        for k in ("L71", "L72", "L73"):
+            self.assertIn('data-l10n="%s"' % k, SRC, f"术语 {k} 缺中文块")
+            self.assertIn("<b>", b[k], f"术语 {k} 缺英文块")
+            self.assertNotRegex(b[k], r"[\u4e00-\u9fff]", f"术语 {k} 英文残留中文")
+
+    def test_resources_added(self):
+        for u in ("github.com/cactus-compute/cactus/tree/legacy",
+                  "cactuscompute.com/blog/needle-2",
+                  "cactuscompute.com/blog/needle-supported-devices"):
+            self.assertIn(u, SRC)
+
+    def test_hero_count_matches_resources(self):
+        n = len(re.findall(r'class="res[^"]*"[^>]*data-k="([^"]+)"', SRC))
+        m = re.search(r'<div class="stat"><b>(\d+)</b><span>精选资源入口</span></div>', SRC)
+        self.assertIsNotNone(m)
+        self.assertEqual(int(m.group(1)), n, "Hero 资源计数与实际条目不一致")
 
 
 class TestLinks(unittest.TestCase):
@@ -588,7 +653,7 @@ class TestRuntime(unittest.TestCase):
 
     def test_res_search_and_filter(self):
         self._skip_if_no_results()
-        self.assertEqual(self.R["counts"].get("res_items"), 23)
+        self.assertEqual(self.R["counts"].get("res_items"), 26)
         self.assertTrue(self.R["checks"].get("res_search_hit"))
         self.assertTrue(self.R["checks"].get("res_search_miss"))
         self.assertTrue(self.R["checks"].get("res_filter_tool"))
