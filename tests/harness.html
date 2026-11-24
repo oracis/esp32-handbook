@@ -1,0 +1,237 @@
+<!doctype html>
+<!-- ESP32 站点运行时测试 harness：iframe 加载 index.html，驱动全部交互，
+     把结果 JSON 写入 #PROBE，供 tests/test_site.py 断言。
+     需以 --allow-file-access-from-files 运行（file:// 同源访问）。 -->
+<html>
+<head><meta charset="utf-8"><title>harness-boot</title></head>
+<body>
+<div id="PROBE">PENDING</div>
+<iframe id="f" style="width:390px;height:3000px;border:0"></iframe>
+<script>
+(function(){
+  var R = { js_errors: [], checks: {}, counts: {}, lists: {}, env: {} };
+  var f = document.getElementById('f');
+  var doc, win;
+
+  function $(s){ return doc.querySelector(s); }
+  function $$(s){ return Array.prototype.slice.call(doc.querySelectorAll(s)); }
+  function visible(el){ return el && el.style.display !== 'none'; }
+  function click(el){ el.dispatchEvent(new MouseEvent('click', {bubbles:true})); }
+  function setLS(k, v){ try{ localStorage.setItem(k, v); return true; }catch(e){ return false; } }
+  function getLS(k){ try{ return localStorage.getItem(k); }catch(e){ return undefined; } }
+  function delLS(k){ try{ localStorage.removeItem(k); }catch(e){} }
+
+  // 顺序执行器：每步必须且只能调一次 next()
+  function seq(fns){
+    var i = 0;
+    function go(){
+      if (i >= fns.length){ finish(); return; }
+      var done = false;
+      function next(){ if (done) return; done = true; i++; setTimeout(go, 30); }
+      try { fns[i](next); }
+      catch(e){ R.js_errors.push('step' + i + ': ' + (e && e.message)); next(); }
+    }
+    go();
+  }
+
+  function finish(){
+    delLS('esp32-lang');
+    document.getElementById('PROBE').textContent = JSON.stringify(R);
+    document.title = 'PROBE-READY';
+  }
+
+  seq([
+
+    /* 1. 预置 localStorage=en，加载站点 → 验证语言恢复 */
+    function(next){
+      R.env.storage_set_ok = setLS('esp32-lang', 'en');
+      f.src = '../index.html';
+      f.onload = function(){ setTimeout(next, 60); };
+      setTimeout(next, 6000); // 兜底
+    },
+    function(next){
+      doc = f.contentDocument; win = f.contentWindow;
+      R.checks.restore_en = doc.documentElement.getAttribute('lang') === 'en';
+      R.checks.restore_title_en = /Field Guide/.test(doc.title);
+      R.checks.storage_readback = getLS('esp32-lang') === 'en';
+      click($('#langSw')); // en -> zh
+      setTimeout(next, 60);
+    },
+
+    /* 2. 切回中文验证 */
+    function(next){
+      R.checks.switch_back_zh = doc.documentElement.getAttribute('lang') === 'zh-CN';
+      R.checks.title_zh = /全景手册/.test(doc.title);
+      R.checks.btn_text_zh = $('#langSw').textContent === 'EN';
+      R.counts.h1 = $$('h1').length;
+      R.counts.sections = $$('section[id]').length;
+      R.counts.rv_total = $$('.rv').length;
+      R.counts.rv_in = $$('.rv.in').length;
+      R.counts.rv_delayed = $$('.rv').filter(function(el){ return el.style.transitionDelay !== ''; }).length;
+
+      /* I18N 完备性（镜像站点实现逻辑） */
+      var D = win.I18N, ET = D.t, EB = D.b;
+      R.counts.i18n_t = Object.keys(ET).length;
+      R.counts.i18n_b = Object.keys(EB).length;
+      var missB = $$('[data-l10n]').map(function(el){ return el.getAttribute('data-l10n'); })
+                .filter(function(k){ return !EB[k]; });
+      R.lists.missing_block_keys = missB.slice(0, 8);
+      R.checks.all_l10n_in_b = missB.length === 0;
+
+      /* 文本节点覆盖率：复刻 TreeWalker 逻辑 */
+      var CJK = /[\u4e00-\u9fff]/;
+      var walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT, null, false);
+      var n, total = 0, uncovered = [];
+      while ((n = walker.nextNode())){
+        var v = n.nodeValue;
+        if (!v || !CJK.test(v)) continue;
+        var pn = n.parentNode;
+        if (pn && (pn.nodeName === 'SCRIPT' || pn.nodeName === 'STYLE')) continue;
+        var p = n.parentNode, skip = false;
+        while (p && p !== doc.body){
+          if (p.nodeType === 1 && p.hasAttribute('data-l10n')) { skip = true; break; }
+          p = p.parentNode;
+        }
+        if (skip) continue;
+        total++;
+        if (!ET[v.trim()]) uncovered.push(v.trim().slice(0, 40));
+      }
+      R.counts.cjk_text_nodes = total;
+      R.lists.uncovered_text = uncovered.slice(0, 8);
+      R.checks.text_coverage = uncovered.length === 0;
+
+      /* 锚点可达 */
+      var dead = $$('.nav-links a').map(function(a){ return a.getAttribute('href'); })
+        .filter(function(h){ return h && h.charAt(0) === '#' && !$(h); });
+      R.lists.dead_anchors = dead;
+      R.checks.anchors_ok = dead.length === 0;
+
+      /* 移动端 390px 横向溢出 */
+      R.counts.overflow_390 = doc.documentElement.scrollWidth;
+      R.checks.no_overflow_390 = doc.documentElement.scrollWidth <= 395;
+
+      setTimeout(next, 30);
+    },
+
+    /* 3. 决策器 */
+    function(next){
+      function wz(v){
+        var g = doc.querySelector('.wz-opts[data-key="' + (v[0]) + '"]');
+        click(g.querySelector('.wz-opt[data-v="' + v[1] + '"]'));
+      }
+      wz(['purpose','learn']);
+      R.checks.wz_learn = /ESP32-S3/.test($('#wzOut').innerText) && /DevKitC/.test($('#wzOut').innerText);
+      wz(['bt','no']); wz(['scale','mass']);
+      R.checks.wz_mass_trap = /认证模组/.test($('#wzOut').innerText);
+      wz(['purpose','battery']); wz(['bt','need']);
+      R.checks.wz_battery_need_c6 = /ESP32-C6/.test($('#wzOut').innerText);
+      wz(['purpose','bigdisp']);
+      R.checks.wz_bigdisp_p4 = /ESP32-P4/.test($('#wzOut').innerText) && /协处理器/.test($('#wzOut').innerText);
+      setTimeout(next, 30);
+    },
+
+    /* 4. 芯片表筛选 */
+    function(next){
+      var rows = $$('#chipTable tbody tr');
+      function visRows(){ return rows.filter(visible).length; }
+      R.counts.chip_rows = rows.length;
+      R.counts.chip_all_visible = visRows();
+      click(doc.querySelector('[data-f="c"]'));
+      R.counts.chip_c_visible = visRows();
+      R.checks.chip_filter_c = visRows() === rows.filter(function(r){ return r.dataset.g === 'c'; }).length;
+      click(doc.querySelector('[data-f="all"]'));
+      R.checks.chip_filter_reset = visRows() === rows.length;
+      setTimeout(next, 30);
+    },
+
+    /* 5. 视频筛选（data-vf 实际值为 all/arduino/idf/proj） */
+    function(next){
+      var cards = $$('#vidList .vid');
+      function visCards(){ return cards.filter(visible).length; }
+      R.counts.vid_cards = cards.length;
+      click(doc.querySelector('[data-vf="idf"]'));
+      R.counts.vid_idf_visible = visCards();
+      R.checks.vid_filter_idf = visCards() === cards.filter(function(c){
+        return (' ' + (c.dataset.k || '') + ' ').indexOf(' idf ') > -1; }).length;
+      R.checks.vid_filter_changed = visCards() < cards.length;
+      click(doc.querySelector('[data-vf="all"]'));
+      R.checks.vid_filter_reset = visCards() === cards.length;
+      setTimeout(next, 30);
+    },
+
+    /* 6. 资源库搜索 + 筛选（搜索词取自第一条资源自身文本，保证命中） */
+    function(next){
+      var items = $$('#resList .res');
+      var inp = $('#resSearch');
+      function visItems(){ return items.filter(visible).length; }
+      R.counts.res_items = items.length;
+      var probe = (items[0].innerText.match(/[\u4e00-\u9fff]{2,4}|[A-Za-z][A-Za-z-]{3,}/) || ['ESP'])[0];
+      R.lists.res_probe = probe;
+      inp.value = probe;
+      inp.dispatchEvent(new Event('input', {bubbles:true}));
+      R.counts.res_hit_probe = visItems();
+      R.checks.res_search_hit = visItems() >= 1;
+      inp.value = 'zzzz-no-such-term';
+      inp.dispatchEvent(new Event('input', {bubbles:true}));
+      R.checks.res_search_miss = visItems() === 0;
+      inp.value = '';
+      inp.dispatchEvent(new Event('input', {bubbles:true}));
+      click(doc.querySelector('[data-rf="tool"]'));
+      R.checks.res_filter_tool = visItems() === items.filter(function(it){
+        return it.dataset.k.split(' ').indexOf('tool') > -1; }).length;
+      click(doc.querySelector('[data-rf="all"]'));
+      setTimeout(next, 30);
+    },
+
+    /* 7. 采购清单筛选 */
+    function(next){
+      click(doc.querySelector('[data-bf="sensor"]'));
+      var gs = $$('.buy-g');
+      var sensorVisible = gs.filter(function(g){
+        return g.getAttribute('data-g') === 'sensor'; }).every(visible);
+      var othersHidden = gs.filter(function(g){
+        return g.getAttribute('data-g') !== 'sensor'; }).every(function(g){ return !visible(g); });
+      R.checks.buy_filter_sensor = sensorVisible && othersHidden;
+      click(doc.querySelector('[data-bf="all"]'));
+      R.checks.buy_filter_reset = gs.every(visible);
+      setTimeout(next, 30);
+    },
+
+    /* 8. 复制按钮 */
+    function(next){
+      var btn = doc.querySelector('.cp');
+      click(btn);
+      setTimeout(function(){
+        var t = btn.textContent;
+        R.checks.copy_button = (t === '已复制' || t === '请手动复制' || t === '复制');
+        R.lists.copy_btn_text = t;
+        setTimeout(next, 30);
+      }, 250);
+    },
+
+    /* 9. 切英文抽查译文无中文残留，再切回来 */
+    function(next){
+      click($('#langSw')); // zh -> en
+      setTimeout(function(){
+        var sub = doc.querySelector('#ai .sec-sub');
+        R.checks.en_ai_sub_no_cjk = !!sub && !/[\u4e00-\u9fff]/.test(sub.innerText);
+        R.checks.en_doc_lang = doc.documentElement.getAttribute('lang') === 'en';
+        click($('#langSw')); // back zh
+        setTimeout(next, 60);
+      }, 60);
+    },
+
+    /* 10. 桌面 1280px 溢出检查（iframe 高 3000px，.rv 初始观察即触发 IO） */
+    function(next){
+      f.style.width = '1280px';
+      setTimeout(function(){
+        R.counts.overflow_1280 = doc.documentElement.scrollWidth;
+        R.checks.no_overflow_1280 = doc.documentElement.scrollWidth <= 1285;
+        setTimeout(next, 30);
+      }, 120);
+    }
+  ]);
+})();
+</script>
+</body>
+</html>
