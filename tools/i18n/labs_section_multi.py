@@ -26,6 +26,8 @@ RANGES = [("01", "10"), ("11", "18"), ("19", "24"),
           ("25", "30"), ("31", "38"), ("39", "46")]
 NATIVE = "简体中文 · English · 繁體中文 · 日本語 · 한국어 · Español · Português · Français · Русский"
 CJK = re.compile(r"[\u4e00-\u9fff]")
+KANA = re.compile(r"[\u3040-\u30ff]")
+HANGUL = re.compile(r"[\uac00-\ud7af]")
 
 
 def grab_lessons():
@@ -99,13 +101,23 @@ def render(lessons, tmap, en, T, lang):
     """生成某一语言的 LBWHOLE innerHTML。
 
     译文回退顺序：目标语言 → 英文 → 中文（宁可显示英文，也不在日语页里留汉字）。
+    判定必须按语言：日语/繁中本来就用汉字，不能「含汉字即判为没翻」。
     """
+    def good(v):
+        if not v:
+            return False
+        if lang in ("zh-TW", "ja"):
+            return True                    # 本身就用汉字，有值即可用
+        if lang == "ko":
+            return bool(HANGUL.search(v)) and not CJK.search(v)
+        return not CJK.search(v)
+
     def tr(zh):
         v = tmap.get(zh)
-        if v and not CJK.search(v):
+        if good(v):
             return v
         v = en.get(zh)
-        if v and not CJK.search(v):
+        if v and (lang in ("zh-TW", "ja") or not CJK.search(v)):
             return v
         return zh
 

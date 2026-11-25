@@ -12,6 +12,40 @@ ROOT = Path(__file__).resolve().parent.parent.parent
 SITE = ROOT / "index.html"
 LAB = ROOT / "lab" / "index.html"
 CJK = re.compile(r"[\u4e00-\u9fff]")
+KANA = re.compile(r"[\u3040-\u30ff]")
+HANGUL = re.compile(r"[\uac00-\ud7af]")
+
+# 这些语言本来就大量使用汉字，不能用「汉字数占比」判定没翻
+HAN_LANGS = {"zh", "zh-TW", "ja"}
+
+
+def check_block(lang, html, nos, expect_cjk=False):
+    soup = BeautifulSoup(html, "html.parser")
+    cards = soup.select("a.lab-item")
+    hrefs = [c.get("href", "") for c in cards]
+    want = ["https://lab.ydtgo.top/#/lessons/%s" % n for n in nos]
+    text = soup.get_text(" ")
+    cjk = len(CJK.findall(text))
+    issues = []
+    if len(cards) != len(nos):
+        issues.append("卡片 %d != %d" % (len(cards), len(nos)))
+    if hrefs != want:
+        bad = [(i, h) for i, h in enumerate(hrefs) if i >= len(want) or h != want[i]][:3]
+        issues.append("href 异常 %d 处，首例 %s" % (len([1 for i, h in enumerate(hrefs)
+                                                       if i >= len(want) or h != want[i]]), bad))
+    if "esp-labs-web" in html or "pages.dev" in html:
+        issues.append("仍有外链")
+    if text.count("ZZ") or "ZZCODE" in html or "ZZBRZZ" in html:
+        issues.append("残留占位符")
+    if lang == "ko":
+        if not HANGUL.search(text):
+            issues.append("缺谚文（疑似未翻）")
+        elif len(CJK.findall(text)) > len(text) * 0.02:
+            issues.append("汉字残留 %d 字" % cjk)
+    elif not expect_cjk and lang not in HAN_LANGS:
+        if len(CJK.findall(text)) > len(text) * 0.02:
+            issues.append("中文残留 %d 字" % cjk)
+    return len(cards), cjk, issues
 
 
 def grab(src, marker):
@@ -44,28 +78,6 @@ def nos_of_lab():
     j = s.index("\n];", i)
     return re.findall(r'no:"([^"]+)"', s[i:j])
 
-
-def check_block(lang, html, nos, expect_cjk=False):
-    soup = BeautifulSoup(html, "html.parser")
-    cards = soup.select("a.lab-item")
-    hrefs = [c.get("href", "") for c in cards]
-    want = ["https://lab.ydtgo.top/#/lessons/%s" % n for n in nos]
-    text = soup.get_text(" ")
-    cjk = len(CJK.findall(text))
-    issues = []
-    if len(cards) != len(nos):
-        issues.append("卡片 %d != %d" % (len(cards), len(nos)))
-    if hrefs != want:
-        bad = [(i, h) for i, h in enumerate(hrefs) if i >= len(want) or h != want[i]][:3]
-        issues.append("href 异常 %d 处，首例 %s" % (len([1 for i, h in enumerate(hrefs)
-                                                       if i >= len(want) or h != want[i]]), bad))
-    if "esp-labs-web" in html or "pages.dev" in html:
-        issues.append("仍有外链")
-    if text.count("ZZ") or "ZZCODE" in html or "ZZBRZZ" in html:
-        issues.append("残留占位符")
-    if not expect_cjk and len(CJK.findall(text)) > len(text) * 0.02:
-        issues.append("中文残留 %d 字" % cjk)
-    return len(cards), cjk, issues
 
 
 def main():

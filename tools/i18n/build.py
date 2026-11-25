@@ -40,10 +40,12 @@ SKIP_BLOCKS = {"LBWHOLE"}
 MAX_ITEM_CHARS = 3000
 
 
+from google_translate import Google
+
 def engine():
     global _Z
     if _Z is None:
-        _Z = Zhipu()
+        _Z = Google()   # Google gtx（免费，配额脆弱）；备选：Zhipu()（glm-4-flash，稳定）
     return _Z
 
 

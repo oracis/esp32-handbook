@@ -43,11 +43,12 @@ SYS = (
 
 
 class Zhipu:
-    def __init__(self, key=KEY, model=MODEL, proxy=None, timeout=120):
+    def __init__(self, key=KEY, model=MODEL, proxy=None, timeout=120, api=None):
         self.key = key
         self.model = model
         self.timeout = timeout
         self.proxy = proxy
+        self.api = api or API
         self.s = requests.Session()
         self.s.trust_env = False
         if proxy:
@@ -60,7 +61,7 @@ class Zhipu:
         last = None
         for i in range(retries):
             try:
-                r = self.s.post(API, json=body, timeout=self.timeout,
+                r = self.s.post(self.api, json=body, timeout=self.timeout,
                                 headers={"Authorization": "Bearer " + self.key,
                                          "Content-Type": "application/json"})
                 self.calls += 1
@@ -100,7 +101,7 @@ class Zhipu:
             out = out.strip("`").strip()
         return out
 
-    def translate(self, texts, lang):
+    def translate(self, texts, lang, retries=3):
         """texts: list[str] -> list[str]，长度一致。"""
         name = LANG_NAME.get(lang, lang)
         msg = [
@@ -108,7 +109,7 @@ class Zhipu:
             {"role": "user", "content": "目标语言：%s\n\n输入：\n%s"
              % (name, json.dumps(list(texts), ensure_ascii=False))},
         ]
-        raw = self.chat(msg)
+        raw = self.chat(msg, retries=retries)
         out = parse_json_array(raw)
         if out is None or len(out) != len(texts):
             # 重试一次，强制强调条数
@@ -118,7 +119,7 @@ class Zhipu:
                  "请重新只输出一个 JSON 数组，必须正好 %d 条，顺序与输入一致。"
                  % len(texts)},
             ]
-            raw = self.chat(msg2)
+            raw = self.chat(msg2, retries=retries)
             out = parse_json_array(raw)
         if out is None:
             raise RuntimeError("解析失败: %s" % raw[:200])
