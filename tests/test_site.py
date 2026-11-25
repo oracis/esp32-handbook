@@ -34,7 +34,7 @@ LIVE_URL = "https://esp32.ydtgo.top/"
 
 SRC = SITE.read_text(encoding="utf-8")
 EXPECT_SECTIONS = ["ai", "chips", "env", "wizard", "path", "labs", "video",
-                   "cases", "code", "res", "buy", "pit", "gloss"]
+                   "cases", "code", "res", "buy", "pit", "gloss", "support"]
 
 CHROME_CANDIDATES = [
     r"C:\Program Files\Google\Chrome\Application\chrome.exe",
@@ -717,7 +717,7 @@ class TestRuntime(unittest.TestCase):
     def test_structure_runtime(self):
         self._skip_if_no_results()
         self.assertEqual(self.R["counts"].get("h1"), 1)
-        self.assertEqual(self.R["counts"].get("sections"), 13)
+        self.assertEqual(self.R["counts"].get("sections"), 14)
 
     def test_rv_reveal(self):
         """滚动显现：harness iframe 内 IO 在 headless 虚拟时间下不触发，
