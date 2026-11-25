@@ -56,6 +56,10 @@ CASES = {
         R["ledMax"] >= 2, R["pop3d"] == "USB 转串口芯片", R["pop3dShow"] is True,
         abs(R["yaw1"] - R["yaw0"]) > 0.3, R["distance1"] < R["distance0"],
         R["zoomLv"] != "100%", "err" not in R)),
+    "e2e=langs": dict(budget=6000, w=1440, h=900, expect=lambda R: (
+        R["n"] == 9, R["allTitles"] is True, R["allOn"] is True,
+        R["noResidue"] == [], R["docLangs"] == [],
+        R["codeKept"] is True, "err" not in R)),
     "e2e=wifi": dict(budget=9000, w=1440, h=900, expect=lambda R: (
         R["fn"] == "lesson_6.ino", R["scanFound"] is True,
         R["ipFound"] is True, R["moduleOn"] is True, "err" not in R)),
@@ -66,8 +70,8 @@ CASES = {
         R["en10"] == "Deep sleep: the key to battery power",
         R["footEn"] is True, "err" not in R)),
     "e2e=i18n": dict(budget=4000, w=1440, h=900, expect=lambda R: (
-        R["zhTitle"] == "认识开发板", R["zhBtn"] == "EN",
-        R["enTitle"] == "Meet the dev board", R["enBtn"] == "中文",
+        R["zhTitle"] == "认识开发板", "简体中文" in R["zhBtn"],
+        R["enTitle"] == "Meet the dev board", "English" in R["enBtn"],
         R["enTab"] == "Overview", R["enHead"] == "30 lessons",
         R["backTitle"] == "认识开发板", R["backTab"] == "概述",
         R["saved"] == "zh", "err" not in R)),

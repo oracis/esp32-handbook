@@ -519,6 +519,32 @@ def _run_harness():
 _HARNESS_CACHE = None
 
 
+def _run_langtest():
+    """?langtest 自检：逐语言切换，title 回读 LANGS JSON。缓存。"""
+    global _LANG_CACHE
+    if _LANG_CACHE is not None:
+        return _LANG_CACHE
+    exe = chrome_path()
+    if not exe:
+        _LANG_CACHE = None
+        return None
+    with tempfile.TemporaryDirectory(prefix="esp32lang_") as td:
+        cmd = [exe, "--headless=new", "--disable-gpu",
+               f"--user-data-dir={td}", "--virtual-time-budget=6000",
+               "--dump-dom", SITE.as_uri() + "?langtest"]
+        r = subprocess.run(cmd, capture_output=True, text=True,
+                           timeout=120, errors="replace")
+        m = re.search(r'data-langtest="([^"]*)"', r.stdout)
+        if not m:
+            _LANG_CACHE = None
+            return None
+        _LANG_CACHE = json.loads(html_mod.unescape(m.group(1).split(" ", 1)[1]))
+        return _LANG_CACHE
+
+
+_LANG_CACHE = None
+
+
 def _run_rv_dump():
     """直接 dump-dom 站点（主 frame）。headless 虚拟时间下 iframe 内的
     IntersectionObserver 不触发、主 frame 会触发，故 .rv 显现测试单独跑。"""
@@ -712,6 +738,30 @@ class TestLive(unittest.TestCase):
         self.assertEqual(len(re.findall(r'data-l10n="', self.resp.text)),
                          len(re.findall(r'data-l10n="', SRC)),
                          "线上 data-l10n 数量与本地不一致")
+
+
+class TestMultiLang(unittest.TestCase):
+    """9 语言运行时自检：标题、正文块、语言集合。"""
+
+    def setUp(self):
+        self.R = _run_langtest()
+        if self.R is None:
+            self.skipTest("?langtest 未产出 LANGS 结果")
+
+    def test_nine_language_codes(self):
+        self.assertEqual([x[0] for x in self.R],
+                         ["zh-CN", "en", "zh-TW", "ja", "ko", "es", "pt", "fr", "ru"])
+
+    def test_titles_translated(self):
+        bad = [x[0] for x in self.R
+               if x[0] != "zh-CN" and (not x[1] or x[1].startswith("ESP32 全景手册"))]
+        self.assertEqual(bad, [], f"未翻译的标题: {bad}")
+
+    def test_blocks_no_cjk_residue(self):
+        # 日语正文用汉字属正常，只有纯表音语言要求零 CJK 残留
+        bad = [x[0] for x in self.R
+               if x[0] not in ("zh-CN", "zh-TW", "ja") and x[2]]
+        self.assertEqual(bad, [], f"非中文语言仍有中文正文: {bad}")
 
 
 if __name__ == "__main__":

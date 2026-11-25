@@ -3,3 +3,4 @@
 *.backup
 lab/tools/node_modules/
 lab/tools/_*
+tools/i18n/cache.json

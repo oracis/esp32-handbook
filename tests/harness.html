@@ -54,7 +54,7 @@
       R.checks.restore_en = doc.documentElement.getAttribute('lang') === 'en';
       R.checks.restore_title_en = /Field Guide/.test(doc.title);
       R.checks.storage_readback = getLS('esp32-lang') === 'en';
-      click($('#langSw')); // en -> zh
+      click($('#langMenu [data-lang="zh-CN"]')); // en -> zh（9 语言下拉）
       setTimeout(next, 60);
     },
 
@@ -62,7 +62,7 @@
     function(next){
       R.checks.switch_back_zh = doc.documentElement.getAttribute('lang') === 'zh-CN';
       R.checks.title_zh = /全景手册/.test(doc.title);
-      R.checks.btn_text_zh = $('#langSw').textContent === 'EN';
+      R.checks.btn_text_zh = /简体中文/.test($('#langSw').textContent);
       R.counts.h1 = $$('h1').length;
       R.counts.sections = $$('section[id]').length;
       R.counts.rv_total = $$('.rv').length;
@@ -90,6 +90,8 @@
         var p = n.parentNode, skip = false;
         while (p && p !== doc.body){
           if (p.nodeType === 1 && p.hasAttribute('data-l10n')) { skip = true; break; }
+          if (p.nodeType === 1 && p.classList &&
+              (p.classList.contains('langMenu') || p.classList.contains('langBox'))) { skip = true; break; }
           p = p.parentNode;
         }
         if (skip) continue;
@@ -211,12 +213,12 @@
 
     /* 9. 切英文抽查译文无中文残留，再切回来 */
     function(next){
-      click($('#langSw')); // zh -> en
+      click($('#langMenu [data-lang="en"]')); // zh -> en
       setTimeout(function(){
         var sub = doc.querySelector('#ai .sec-sub');
         R.checks.en_ai_sub_no_cjk = !!sub && !/[\u4e00-\u9fff]/.test(sub.innerText);
         R.checks.en_doc_lang = doc.documentElement.getAttribute('lang') === 'en';
-        click($('#langSw')); // back zh
+        click($('#langMenu [data-lang="zh-CN"]')); // back zh
         setTimeout(next, 60);
       }, 60);
     },
