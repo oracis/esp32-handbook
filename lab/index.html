@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ESP32 虚拟实验室 · 浏览器里玩转第一块开发板</title>
-<meta name="description" content="原创的 ESP32 浏览器虚拟实验室：可拆解的 DevKitC 交互图、脚本化仿真、串口监视器与三门前置课。零依赖单文件。">
+<meta name="description" content="原创的 ESP32 浏览器虚拟实验室：可拆解的 DevKitC 交互图、脚本化仿真、串口回显、PWM 呼吸灯、按键与 Wi-Fi 交互，六门原创课。零依赖单文件。">
 <style>
 :root{
   --bg:#0d1117; --panel:#151b24; --panel2:#10161f; --line:#28313f; --line-soft:#1d2532;
@@ -121,6 +121,8 @@ aside{border-right:1px solid var(--line);background:var(--panel2);overflow-y:aut
 #inRow button:hover{filter:brightness(1.12)}
 #inRow.hid{display:none}
 #inRow .ph{font-size:10.5px;color:var(--muted);align-self:center;font-family:var(--mono)}
+#bootHint{font-size:11px;color:var(--teal);padding:7px 12px;border-top:1px solid var(--line-soft);background:rgba(47,196,178,.06);font-family:var(--mono)}
+#bootHint.hid{display:none}#bootHint b{color:var(--text)}
 
 /* ---------- 部件浮层 ---------- */
 #pop{position:absolute;pointer-events:none;z-index:30;max-width:290px;background:rgba(16,22,31,.97);border:1px solid var(--line);border-radius:11px;padding:11px 14px;box-shadow:0 12px 34px rgba(0,0,0,.55);opacity:0;transform:translateY(5px);transition:.15s}
@@ -134,7 +136,11 @@ aside{border-right:1px solid var(--line);background:var(--panel2);overflow-y:aut
 .st-led{transition:fill .08s}
 .ledGlow{opacity:0;transition:opacity .08s}
 .on .ledCore{fill:#4da6ff}
-.on .ledGlow{opacity:.75}
+.on .ledGlow{opacity:var(--lv,.75)}
+#ledPart.pwm .ledGlow,#ledPart.pwm .ledCore{transition:none}/* PWM 由 rAF 逐帧驱动，去掉 CSS 过渡避免拖影 */
+.part[data-part="module"].on rect:nth-of-type(2){stroke:var(--teal);stroke-width:2}
+.part[data-part="module"].on .silk{fill:var(--teal)}
+.part[data-part="boot"].pressed circle:nth-of-type(1){fill:#2fc4b2;stroke:#2fc4b2}
 .on.chipBlink .chipBody{fill:#2fc4b2}
 
 /* ---------- 留言区 ---------- */
@@ -176,7 +182,7 @@ aside{border-right:1px solid var(--line);background:var(--panel2);overflow-y:aut
     ESP32<span style="color:var(--muted);font-weight:400">虚拟实验室</span>
   </div>
   <span class="pill">脚本化仿真 · 非真编译</span>
-  <div class="hstat"><span><b>3</b> 课</span><span><b>12</b> 可点部件</span><span>原创内容</span></div>
+  <div class="hstat"><span><b>6</b> 课</span><span><b>12</b> 可点部件</span><span>原创内容</span></div>
 </header>
 
 <main>
@@ -347,6 +353,7 @@ aside{border-right:1px solid var(--line);background:var(--panel2);overflow-y:aut
           <input id="serInput" placeholder="发给板子：输入文字回车" maxlength="80"></input>
           <button id="serSend">发送</button>
         </div>
+        <div id="bootHint" class="hid">👆 点一下板子图上的 <b>BOOT 键</b>（GPIO0），串口会记录你的按键</div>
       </div>
     </div>
   </section>
@@ -454,13 +461,77 @@ const LESSONS = [
        {t:1000,serial:"tick 1s",repeat:{every:1000,times:4}},
        {t:1400,serial:"(试试在下面输入框打字发给板子)"} ],
   input:true
+},
+{
+  id:4, no:"04", title:"按键输入：BOOT 键（GPIO0）", meta:"输入 · 上拉电阻", group:"交互",
+  wiringHd:"接线：不用接线，用板载 BOOT 键",
+  wiring:"DevKitC 的 <b>BOOT 键</b>接在 <b>GPIO0</b> 上，另一端接地。不按时靠<b>内部上拉电阻</b>保持高电平（HIGH），按下接地变低（LOW）。虚拟板子上这颗键可以<b>直接点</b>。",
+  pins:[["GPIO0","BOOT 键 · 输入"],["GND","按键另一端"]],
+  overview:[
+    [0,"按键输入的本质：让 CPU <b>读</b>一个引脚的高低电平。<code>pinMode(0, INPUT_PULLUP)</code> 启用<b>内部上拉</b>，不用外接电阻。"],
+    [1,"不按时读到 <b>HIGH</b>（3.3V），按下接地读到 <b>LOW</b>（0V）。代码里用 <code>digitalRead(0) == LOW</code> 判断「被按下」。"],
+    [2,"这节课要<b>你亲自按键</b>：点运行后，去板子图上点 <b>BOOT 键</b>，每按一次串口就记一笔。真实硬件上你也能这么按。"]],
+  points:[
+    ["INPUT_PULLUP","内部上拉约 45kΩ：不按时是 HIGH，按下接地才变 LOW。省掉一个外接电阻。"],
+    ["active LOW","按键按下 = LOW，所以判断写成 <code>== LOW</code> 而不是 HIGH——这叫低电平有效。"],
+    ["消抖","机械按键在闭合瞬间会抖动几毫秒，实际项目用 <code>delay(20)</code> 或状态机消抖，避免一次按被读成多次。"],
+    ["BOOT 的双重身份","GPIO0 上电时为 LOW 会进下载模式；程序跑起来后它就是普通按键，两者不冲突。"]],
+  code:'<span class="c">// 第 4 课：读 BOOT 键（GPIO0），按下就报数</span>\n<span class="k">const int</span> BTN = <span class="n">0</span>;  <span class="c">// BOOT 键接 GPIO0</span>\n<span class="k">int</span> count = <span class="n">0</span>, last = HIGH;\n\n<span class="k">void</span> <span class="f">setup</span>() {\n  Serial.<span class="f">begin</span>(<span class="n">115200</span>);\n  <span class="f">pinMode</span>(BTN, INPUT_PULLUP);   <span class="c">// 内部上拉，不用外接电阻</span>\n  Serial.<span class="f">println</span>(<span class="s">"按键检测就绪，按下 BOOT 试试"</span>);\n}\n\n<span class="k">void</span> <span class="f">loop</span>() {\n  <span class="k">int</span> now = <span class="f">digitalRead</span>(BTN);\n  <span class="k">if</span> (now == LOW &amp;&amp; last == HIGH) {  <span class="c">// 下降沿：刚按下</span>\n    Serial.<span class="f">printf</span>(<span class="s">"BOOT 按下 #%d · GPIO0 = LOW\\n"</span>, ++count);\n    <span class="f">delay</span>(<span class="n">20</span>);   <span class="c">// 简单消抖</span>\n  }\n  last = now;\n}',
+  tl:[ {t:250,serial:"按键检测就绪，按下 BOOT 试试"},
+       {t:700,serial:"提示：点板子图上的 BOOT 键（GPIO0）"} ],
+  bootInput:true
+},
+{
+  id:5, no:"05", title:"PWM 呼吸灯（渐变亮度）", meta:"PWM · LEDC 外设", group:"交互",
+  wiringHd:"接线：还是板载 LED，不用外接",
+  wiring:"继续用 <b>GPIO2 板载 LED</b>。PWM（脉冲宽度调制）靠快速开关改变<b>平均亮度</b>——占空比越高看起来越亮。虚拟板子的 LED 会真实呈现渐变明暗。",
+  pins:[["GPIO2","板载 LED · PWM 输出"],["GND","板载，无需接线"]],
+  overview:[
+    [0,"<code>digitalWrite</code> 只有亮/灭两档。要做出<b>呼吸灯</b>的平滑明暗，得用 <b>PWM</b>：在 1 个周期里让引脚亮一段时间、灭一段时间。"],
+    [1,"<b>占空比</b>（duty cycle）= 高电平时间 ÷ 周期。50% 看起来半亮，100% 全亮，0% 熄灭。眼睛有视觉暂留，所以看不到闪烁。"],
+    [2,"ESP32 有专用 <b>LEDC 外设</b>（16 通道）；Arduino 里 <code>analogWrite(pin, duty)</code> 一句就能输出 PWM，duty 范围 0~255。"]],
+  points:[
+    ["analogWrite(pin, duty)","GPIO2 输出 PWM，duty 0~255。ESP32 的 Arduino 核心默认 8 位分辨率。"],
+    ["ledcWrite 底层","要更高分辨率（12 位）或可调频率，用 ESP-IDF 的 <code>ledcSetup(channel, freq, resolution)</code> + <code>ledcAttachPin</code>。"],
+    ["频率与闪烁","LED 调光常用 1~5kHz。频率太低（&lt;100Hz）肉眼会看到闪烁，做舵机则要固定 50Hz。"],
+    ["Gamma 校正","人眼对亮度是对数感知，线性 duty 看起来不均匀。精细项目要做 gamma 映射，呼吸灯才顺滑。"]],
+  code:'<span class="c">// 第 5 课：PWM 呼吸灯，亮度渐亮渐灭</span>\n<span class="k">const int</span> LED = <span class="n">2</span>;\n\n<span class="k">void</span> <span class="f">setup</span>() {\n  Serial.<span class="f">begin</span>(<span class="n">115200</span>);\n  <span class="f">pinMode</span>(LED, OUTPUT);\n  Serial.<span class="f">println</span>(<span class="s">"PWM 呼吸灯启动 · GPIO2"</span>);\n}\n\n<span class="k">void</span> <span class="f">loop</span>() {\n  <span class="c">// 渐亮：duty 0 → 255</span>\n  <span class="k">for</span> (<span class="k">int</span> d = <span class="n">0</span>; d &lt;= <span class="n">255</span>; d++) {\n    <span class="f">analogWrite</span>(LED, d); <span class="f">delay</span>(<span class="n">8</span>);\n  }\n  <span class="c">// 渐灭：duty 255 → 0</span>\n  <span class="k">for</span> (<span class="k">int</span> d = <span class="n">255</span>; d &gt;= <span class="n">0</span>; d--) {\n    <span class="f">analogWrite</span>(LED, d); <span class="f">delay</span>(<span class="n">8</span>);\n  }\n}',
+  tl:[ {t:250,serial:"PWM 呼吸灯启动 · GPIO2"},
+       {t:500,serial:"渐亮 → 渐灭，占空比 0~255（虚拟板呈现平滑明暗）"},
+       {t:700,pwm:2},
+       {t:4900,serial:"一个呼吸周期约 2 秒，代码里用 analogWrite 逐帧改占空比"} ],
+  input:false
+},
+{
+  id:6, no:"06", title:"Wi-Fi 状态：从扫描到联网", meta:"Wi-Fi · 状态机", group:"交互",
+  wiringHd:"接线：不用接线，Wi-Fi 在芯片里",
+  wiring:"Wi-Fi 和蓝牙都<b>内置在 ESP32 芯片</b>里，天线就是模组上那块 PCB 网格。这节课不外接任何元件，运行后看串口的联网过程日志，虚拟板子的<b>模组</b>会在连接成功时点亮高亮。",
+  pins:[["3V3","模组供电"],["GND","地"],["（内置）","2.4GHz Wi-Fi + BT"]],
+  overview:[
+    [0,"ESP32 的 Wi-Fi 有<b>三种身份</b>：STA（连路由器）、AP（自己开热点）、STA+AP。最常见的是 <b>STA 模式</b>——像手机一样连家里的路由器。"],
+    [1,"联网是个<b>状态机</b>：初始化 → 扫描/指定 SSID → 关联 → 拿到 DHCP 的 IP → 可以通信。每一步都可能失败，所以要监听事件。"],
+    [2,"这节课模拟一次完整连接过程：<b>扫描 → 选中 → 握手 → 获取 IP</b>。真实代码里用 <code>WiFi.begin(ssid, pass)</code> + 轮询 <code>WiFi.status()</code>。"]],
+  points:[
+    ["WiFi.mode(WIFI_STA)","设为站点模式。ESP32 还支持 WIFI_AP 和 WIFI_AP_STA。"],
+    ["WiFi.status()","返回 WL_CONNECTED / WL_DISCONNECTED 等状态。连不上时先看这个，别猜。"],
+    ["DHCP 自动拿 IP","连上路由器后自动分配 192.168.x.x。<code>WiFi.localIP()</code> 打印出来就能在局域网访问它。"],
+    ["2.4GHz only","ESP32 只支持 2.4GHz，连不上 5GHz 网络是正常的。信号差先查频段和距离。"]],
+  code:'<span class="c">// 第 6 课：STA 模式连 Wi-Fi，打印状态</span>\n<span class="c">#include &lt;WiFi.h&gt;</span>\n\n<span class="k">const char*</span> ssid = <span class="s">"Home-2.4G"</span>;\n<span class="k">const char*</span> pass = <span class="s">"12345678"</span>;\n\n<span class="k">void</span> <span class="f">setup</span>() {\n  Serial.<span class="f">begin</span>(<span class="n">115200</span>);\n  WiFi.<span class="f">mode</span>(WIFI_STA);\n  WiFi.<span class="f">begin</span>(ssid, pass);\n  Serial.<span class="f">print</span>(<span class="s">"Connecting"</span>);\n  <span class="k">while</span> (WiFi.<span class="f">status</span>() != WL_CONNECTED) {\n    <span class="f">delay</span>(<span class="n">500</span>); Serial.<span class="f">print</span>(<span class="s">"."</span>);\n  }\n  Serial.<span class="f">println</span>();\n  Serial.<span class="f">printf</span>(<span class="s">"Connected! IP = %s\\n"</span>, WiFi.<span class="f">localIP</span>().toString().c_str());\n}\n\n<span class="k">void</span> <span class="f">loop</span>() {}',
+  tl:[ {t:250,serial:"WiFi.mode(WIFI_STA) · 设置站点模式"},
+       {t:600,serial:"扫描附近 AP..."},
+       {t:1200,serial:"  找到 Home-2.4G (-42dBm) · Coffee_5G(2.4G 关闭)"},
+       {t:1700,serial:"Connecting... 关联中",part:"module",state:"on"},
+       {t:2600,serial:"握手完成 · DHCP 请求中"},
+       {t:3300,serial:"Connected! IP = 192.168.1.42",part:"module",state:"on"},
+       {t:3900,serial:"提示：ESP32 只支持 2.4GHz，连不上 5GHz 是正常的"} ],
+  input:false
 }
 ];
 
 /* ================= 引擎 ================= */
 const $ = s => document.querySelector(s);
 const serial = $("#serial"), codeOut = $("#codeOut"), body = $("#body");
-let cur = 0, timers = [], running = false, t0 = 0, rafId = null, lastT = 0;
+let cur = 0, timers = [], running = false, t0 = 0, rafId = null, pwmRaf = null, lastT = 0;
 
 function expandTl(tl){
   const out = [];
@@ -497,9 +568,10 @@ function serialLn(text, cls){
 }
 function stop(auto){
   timers.forEach(clearTimeout); timers = [];
-  cancelAnimationFrame(rafId);
+  cancelAnimationFrame(rafId); clearInterval(pwmRaf); pwmRaf = null;
   if (running || auto === true){
     document.querySelectorAll(".part.on").forEach(el => { if (el.dataset.part !== "pwrled") el.classList.remove("on"); });
+    const led = $("#ledPart"); if (led){ led.classList.remove("pwm"); led.style.removeProperty("--lv"); }
   }
   running = false;
   $("#btnRun").disabled = false;
@@ -532,10 +604,27 @@ function run(){
     rafId = requestAnimationFrame(prog);
   })();
 }
+/* PWM 呼吸灯：定时器逐帧把亮度 0..1 写进 CSS 变量 --lv（正弦包络，一个周期 2s）
+   用 setTimeout 而非 rAF：与引擎时间轴共用同一套定时器，headless 虚拟时间下也能稳定复现 */
+function breathe(cycles){
+  const led = $("#ledPart");
+  if (!led) return;
+  led.classList.add("pwm"); led.classList.add("on");
+  clearInterval(pwmRaf);
+  const n = cycles || 2, frames = 80, stepMs = 2000 / frames;
+  let f = 0;
+  pwmRaf = setInterval(() => {
+    if (!running){ clearInterval(pwmRaf); return; }
+    const p = ++f / (frames * n);
+    if (p >= 1){ clearInterval(pwmRaf); led.style.setProperty("--lv", "0"); led.classList.remove("pwm"); return; }
+    led.style.setProperty("--lv", ((1 - Math.cos(p * Math.PI * 2 * n)) / 2).toFixed(3));
+  }, stepMs);
+}
 function fire(e){
   if (e.serial !== undefined){ serialLn(e.serial); chipPing(); }
   if (e.led !== undefined) hwSet("led", e.led === "on");
   if (e.part !== undefined && e.state !== undefined) hwSet(e.part, e.state === "on");
+  if (e.pwm !== undefined) breathe(e.pwm);
 }
 
 /* ================= 课程面板渲染 ================= */
@@ -544,6 +633,9 @@ function renderLesson(){
   codeOut.innerHTML = L.code;
   $("#codeFn").textContent = "lesson_" + L.id + ".ino";
   $("#inRow").classList.toggle("hid", !L.input);
+  bootCount = 0;
+  const bh = $("#bootHint");
+  if (bh) bh.classList.toggle("hid", !L.bootInput);
   document.querySelectorAll(".tab").forEach(t => t.classList.toggle("on", t.dataset.tab === "overview"));
   renderBody("overview");
   stop(true);
@@ -594,8 +686,23 @@ function showPop(el, part){
   pop.style.left = Math.min(box.width - 310, Math.max(8, r.left - box.left + r.width / 2 - 30)) + "px";
   pop.style.top = Math.min(box.height - 150, Math.max(8, r.top - box.top + 10)) + "px";
 }
+/* BOOT 按键交互：第 4 课运行时点 BOOT → 记一次按键并回显；其余情况正常弹部件说明 */
+let bootCount = 0;
+function bootPress(){
+  if (!running || !LESSONS[cur].bootInput) return;
+  const el = document.querySelector('.part[data-part="boot"]');
+  bootCount++;
+  serialLn("BOOT 按下 #" + bootCount + " · GPIO0 = LOW");
+  chipPing();
+  if (el){ el.classList.add("pressed"); clearTimeout(el._bp); el._bp = setTimeout(() => el.classList.remove("pressed"), 200); }
+  setTimeout(() => { if (running) serialLn("BOOT 松开 · GPIO0 = HIGH（内部上拉）"); }, 240);
+}
 document.querySelectorAll(".part").forEach(el => {
-  el.addEventListener("click", ev => { ev.stopPropagation(); showPop(el, el.dataset.part); });
+  el.addEventListener("click", ev => {
+    ev.stopPropagation();
+    if (el.dataset.part === "boot" && running && LESSONS[cur].bootInput){ bootPress(); return; }
+    showPop(el, el.dataset.part);
+  });
 });
 $("#svgBox").addEventListener("click", () => { pop.classList.remove("show"); document.querySelectorAll(".part.sel").forEach(x => x.classList.remove("sel")); });
 
@@ -747,6 +854,38 @@ if (new URLSearchParams(location.search).has("e2e")){
         R.txFound = Array.prototype.some.call(serial.children, el => el.textContent.indexOf("> hi board") >= 0);
         R.inputShown = !document.querySelector("#inRow").classList.contains("hid");
         R.fn = document.querySelector("#codeFn").textContent;
+      } else if (mode === "l4"){
+        /* BOOT 按键交互：运行后点虚拟 BOOT 键，串口应记按下+松开 */
+        cur = 3; renderList(); renderLesson(); run();
+        await sleep(900);
+        R.fn = document.querySelector("#codeFn").textContent;
+        R.bootHint = !document.querySelector("#bootHint").classList.contains("hid");
+        const bp = document.querySelector('.part[data-part="boot"]');
+        bp.dispatchEvent(new MouseEvent("click", {bubbles: true}));
+        await sleep(400);
+        R.pressFound = Array.prototype.some.call(serial.children, el => el.textContent.indexOf("BOOT 按下 #1") >= 0);
+        R.releaseFound = Array.prototype.some.call(serial.children, el => el.textContent.indexOf("BOOT 松开") >= 0);
+        R.popStayedHidden = !document.querySelector("#pop").classList.contains("show");
+        R.count = bootCount;
+      } else if (mode === "pwm"){
+        /* PWM 呼吸灯：运行后 LED 应进入 pwm 模式且 --lv 在 0..1 间变化 */
+        cur = 4; renderList(); renderLesson(); run();
+        await sleep(1450);
+        const led = document.querySelector("#ledPart");
+        R.pwmClass = led.classList.contains("pwm");
+        R.lv1 = parseFloat(led.style.getPropertyValue("--lv"));
+        await sleep(450);
+        R.lv2 = parseFloat(led.style.getPropertyValue("--lv"));
+        R.changed = Math.abs(R.lv1 - R.lv2) > 0.005;
+        R.fn = document.querySelector("#codeFn").textContent;
+      } else if (mode === "wifi"){
+        /* Wi-Fi 状态机：模组联动 + 联网日志 + IP */
+        cur = 5; renderList(); renderLesson(); run();
+        await sleep(4200);
+        R.fn = document.querySelector("#codeFn").textContent;
+        R.scanFound = Array.prototype.some.call(serial.children, el => el.textContent.indexOf("扫描附近 AP") >= 0);
+        R.ipFound = Array.prototype.some.call(serial.children, el => el.textContent.indexOf("192.168.1.42") >= 0);
+        R.moduleOn = document.querySelector('.part[data-part="module"]').classList.contains("on");
       } else if (mode === "l1"){
         cur = 0; renderList(); renderLesson();
         R.fn = document.querySelector("#codeFn").textContent;

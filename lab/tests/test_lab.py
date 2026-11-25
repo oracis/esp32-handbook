@@ -42,6 +42,16 @@ CASES = {
         R["wire"] is True, R["pins"] == 3, R["points"] == 4, "err" not in R)),
     "e2e=zoom": dict(budget=4000, w=1440, h=900, expect=lambda R: (
         R["zoom"] != "100%", "scale(" in R["tf"], R["reset"] == "100%", "err" not in R)),
+    "e2e=l4":  dict(budget=6000, w=1440, h=900, expect=lambda R: (
+        R["fn"] == "lesson_4.ino", R["bootHint"] is True,
+        R["pressFound"] is True, R["releaseFound"] is True,
+        R["popStayedHidden"] is True, R["count"] == 1, "err" not in R)),
+    "e2e=pwm":  dict(budget=8000, w=1440, h=900, expect=lambda R: (
+        R["fn"] == "lesson_5.ino", R["pwmClass"] is True,
+        0 <= R["lv1"] <= 1, 0 <= R["lv2"] <= 1, R["changed"] is True, "err" not in R)),
+    "e2e=wifi": dict(budget=9000, w=1440, h=900, expect=lambda R: (
+        R["fn"] == "lesson_6.ino", R["scanFound"] is True,
+        R["ipFound"] is True, R["moduleOn"] is True, "err" not in R)),
     "e2e=cm":   dict(budget=4000, w=1440, h=900, expect=lambda R: (
         R["cmHidden"] is True, R["cmCodeKept"] is True,
         R["cmNoRequest"] is True, "err" not in R)),
