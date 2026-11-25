@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ESP32 虚拟实验室 · 浏览器里玩转第一块开发板</title>
+<meta name="description" content="原创的 ESP32 浏览器虚拟实验室：可拆解的 DevKitC 交互图、脚本化仿真、串口监视器与三门前置课。零依赖单文件。">
+<style>
+:root{
+  --bg:#0d1117; --panel:#151b24; --panel2:#10161f; --line:#28313f; --line-soft:#1d2532;
+  --text:#e8edf3; --text2:#a9b6c6; --muted:#7d8a9a;
+  --red:#f0453a; --teal:#2fc4b2; --amber:#f0a832; --violet:#a78bfa;
+  --mono:"SFMono-Regular",Consolas,"Liberation Mono",monospace;
+  --sans:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;line-height:1.6;overflow:hidden}
+button{font-family:inherit;cursor:pointer}
+::-webkit-scrollbar{width:9px;height:9px}
+::-webkit-scrollbar-thumb{background:#2c3646;border-radius:5px}
+::-webkit-scrollbar-track{background:transparent}
+
+/* ---------- 顶栏 ---------- */
+header{height:54px;display:flex;align-items:center;gap:14px;padding:0 18px;border-bottom:1px solid var(--line);background:var(--panel);flex:none}
+.logo{display:flex;align-items:center;gap:9px;font-weight:700;font-size:15px;white-space:nowrap}
+.logo svg{flex:none}
+.logo small{font-weight:400;color:var(--muted);font-size:11.5px;margin-left:2px}
+.hstat{margin-left:auto;display:flex;gap:16px;font-family:var(--mono);font-size:11px;color:var(--muted)}
+.hstat b{color:var(--text2);font-weight:600}
+.pill{border:1px solid var(--line);border-radius:99px;padding:3px 11px;font-size:11px;color:var(--teal);font-family:var(--mono)}
+
+/* ---------- 三栏布局 ---------- */
+main{display:grid;grid-template-columns:210px minmax(0,1fr) 400px;height:calc(100% - 54px)}
+aside{border-right:1px solid var(--line);background:var(--panel2);overflow-y:auto;padding:14px 12px}
+.grp{font-size:10.5px;font-family:var(--mono);letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin:6px 4px 9px}
+.lsn{display:block;width:100%;text-align:left;background:none;border:1px solid transparent;border-radius:9px;padding:9px 11px;color:var(--text2);font-size:13px;margin-bottom:5px;transition:.14s;position:relative}
+.lsn:hover{background:#1a2230;color:var(--text)}
+.lsn.on{background:rgba(47,196,178,.09);border-color:rgba(47,196,178,.4);color:var(--text)}
+.lsn.on::before{content:"";position:absolute;left:0;top:9px;bottom:9px;width:2.5px;border-radius:2px;background:var(--teal)}
+.lsn .no{font-family:var(--mono);font-size:10px;color:var(--muted);margin-right:6px}
+.lsn .tt{display:block;font-size:12.8px;line-height:1.45}
+.lsn .meta{display:block;font-size:10.5px;color:var(--muted);margin-top:2px}
+.lsn.on .no{color:var(--teal)}
+
+/* ---------- 板子区 ---------- */
+#boardWrap{position:relative;overflow:hidden;background:
+  radial-gradient(circle at 30% 20%,rgba(167,139,250,.05),transparent 55%),
+  radial-gradient(circle at 75% 80%,rgba(47,196,178,.05),transparent 55%),var(--bg);
+  display:flex;flex-direction:column}
+#boardBar{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--line-soft);flex:none}
+#boardBar .cap{font-size:11.5px;color:var(--muted);font-family:var(--mono)}
+#boardBar .hint{font-size:11px;color:var(--muted);margin-left:auto}
+#progWrap{height:2.5px;background:var(--line-soft);flex:none;overflow:hidden}
+#prog{height:100%;width:0;background:linear-gradient(90deg,var(--teal),var(--violet));transition:width .1s linear}
+#svgBox{flex:1;position:relative;min-height:0}
+#board{position:absolute;inset:0;width:100%;height:100%;cursor:grab;touch-action:none}
+#board.drag{cursor:grabbing}
+.part{cursor:pointer}
+.part .hit{fill:transparent}
+.part:hover .hit{fill:rgba(240,69,58,.10);stroke:rgba(240,69,58,.55);stroke-width:1.4;stroke-dasharray:4 3}
+.part.sel .hit{fill:rgba(47,196,178,.12);stroke:var(--teal);stroke-width:1.6}
+.silk{font-family:var(--mono);fill:#5c6a78;font-size:9px;letter-spacing:.04em}
+.silkw{fill:#8b98a8}
+#legend{display:flex;gap:14px;padding:8px 16px;border-top:1px solid var(--line-soft);font-size:11px;color:var(--muted);font-family:var(--mono);flex:none;flex-wrap:wrap}
+#legend i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:0}
+
+/* ---------- 课程区 ---------- */
+#lesson{border-left:1px solid var(--line);background:var(--panel2);display:flex;flex-direction:column;min-width:0;overflow:hidden}
+#tabs{display:flex;gap:2px;padding:9px 12px 0;border-bottom:1px solid var(--line);flex:none}
+.tab{background:none;border:none;color:var(--muted);font-size:12.5px;padding:8px 13px;border-bottom:2px solid transparent;transition:.14s}
+.tab:hover{color:var(--text2)}
+.tab.on{color:var(--text);border-bottom-color:var(--red);font-weight:600}
+#body{flex:1;overflow-y:auto;padding:15px 18px;min-height:0}
+#body h3{font-size:15px;margin:2px 0 9px;font-weight:700}
+#body p{font-size:13px;color:var(--text2);margin-bottom:10px}
+#body p b{color:var(--text);font-weight:600}
+#body ul{list-style:none;margin:0 0 12px}
+#body li{position:relative;padding-left:16px;font-size:12.8px;color:var(--text2);margin-bottom:7px;line-height:1.62}
+#body li::before{content:"";position:absolute;left:3px;top:8px;width:4px;height:4px;border-radius:50%;background:var(--teal)}
+#body li b{color:var(--text)}
+#body code{font-family:var(--mono);font-size:11.6px;background:#1a2230;border:1px solid var(--line-soft);border-radius:5px;padding:1px 6px;color:#ffd479}
+.callout{border:1px solid rgba(240,168,50,.35);background:rgba(240,168,50,.07);border-radius:9px;padding:10px 13px;font-size:12.4px;color:var(--text2);margin:4px 0 12px}
+.callout b{color:var(--amber)}
+.wire{border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:var(--panel);margin-bottom:12px}
+.wire .wh{font-size:10.5px;font-family:var(--mono);letter-spacing:.1em;color:var(--muted);text-transform:uppercase;margin-bottom:7px}
+.wire p{margin:0;font-size:12.8px}
+.wire .pinrow{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}
+.wire .pin{font-family:var(--mono);font-size:10.5px;border:1px solid var(--line);border-radius:5px;padding:2px 8px;color:var(--text2)}
+.wire .pin.hot{border-color:rgba(240,69,58,.5);color:#ff8d84}
+
+/* ---------- 代码 + 串口 ---------- */
+#runBox{border-top:1px solid var(--line);background:var(--panel);flex:none;display:flex;flex-direction:column}
+#runBar{display:flex;align-items:center;gap:9px;padding:9px 14px}
+#runBar .fn{font-family:var(--mono);font-size:11px;color:var(--muted)}
+#btnRun{background:var(--red);color:#fff;border:none;border-radius:8px;padding:7px 20px;font-size:13px;font-weight:600;transition:.15s}
+#btnRun:hover{background:#ff5a4e}
+#btnRun:disabled{background:#3a4350;color:#8b98a8;cursor:not-allowed}
+#btnStop{background:none;border:1px solid var(--line);color:var(--text2);border-radius:8px;padding:6px 14px;font-size:12.5px}
+#btnStop:hover{border-color:var(--red);color:var(--red)}
+#runBar .done{font-size:11.5px;color:var(--teal);font-family:var(--mono)}
+#codeBox{margin:0 14px;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#0a0d11}
+#codeBox pre{margin:0;padding:12px 14px;overflow:auto;font-family:var(--mono);font-size:12.2px;line-height:1.65;color:#cdd6e2;max-height:190px}
+.k{color:#ff7b8a}.s{color:#9ee493}.c{color:#5d6b78;font-style:italic}.n{color:#79c0ff}.f{color:#d2a8ff}
+#serialBox{margin:10px 14px 12px;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#05070a;display:flex;flex-direction:column;height:172px}
+#serialHead{display:flex;align-items:center;gap:8px;padding:6px 12px;border-bottom:1px solid var(--line-soft);background:#0a0e14}
+#serialHead .t{font-family:var(--mono);font-size:10.5px;color:var(--muted);letter-spacing:.08em}
+#serialHead .dot{width:7px;height:7px;border-radius:50%;background:#3a4350}
+#serialHead .dot.live{background:var(--teal);box-shadow:0 0 6px var(--teal)}
+#serialClear{margin-left:auto;background:none;border:none;color:var(--muted);font-size:10.5px;font-family:var(--mono)}
+#serialClear:hover{color:var(--text2)}
+#serial{flex:1;overflow-y:auto;padding:8px 12px;font-family:var(--mono);font-size:11.6px;line-height:1.72}
+#serial .ln{white-space:pre-wrap;word-break:break-all;color:#7ee787}
+#serial .ts{color:#3d4b5c;margin-right:8px;user-select:none}
+#serial .noise{color:#2e3a48}
+#serial .tx{color:#79c0ff}#serial .rx{color:#7ee787}#serial .end{color:#5d6b78}
+#inRow{display:flex;gap:8px;padding:7px 12px;border-top:1px solid var(--line-soft);background:#0a0e14}
+#inRow input{flex:1;background:#05070a;border:1px solid var(--line);border-radius:7px;color:var(--text);font-family:var(--mono);font-size:11.8px;padding:6px 10px;outline:none}
+#inRow input:focus{border-color:var(--teal)}
+#inRow button{background:var(--teal);border:none;color:#04211c;border-radius:7px;padding:6px 15px;font-size:11.8px;font-weight:700}
+#inRow button:hover{filter:brightness(1.12)}
+#inRow.hid{display:none}
+#inRow .ph{font-size:10.5px;color:var(--muted);align-self:center;font-family:var(--mono)}
+
+/* ---------- 部件浮层 ---------- */
+#pop{position:absolute;pointer-events:none;z-index:30;max-width:290px;background:rgba(16,22,31,.97);border:1px solid var(--line);border-radius:11px;padding:11px 14px;box-shadow:0 12px 34px rgba(0,0,0,.55);opacity:0;transform:translateY(5px);transition:.15s}
+#pop.show{opacity:1;transform:none}
+#pop .pk{font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;color:var(--teal);text-transform:uppercase}
+#pop .pt{font-size:13.5px;font-weight:700;margin:2px 0 5px}
+#pop .pd{font-size:12px;color:var(--text2);line-height:1.55}
+#pop .pd b{color:var(--text)}
+
+/* ---------- 状态点 ---------- */
+.st-led{transition:fill .08s}
+.ledGlow{opacity:0;transition:opacity .08s}
+.on .ledCore{fill:#4da6ff}
+.on .ledGlow{opacity:.75}
+.on.chipBlink .chipBody{fill:#2fc4b2}
+
+/* ---------- 响应式 ---------- */
+@media(max-width:1080px){main{grid-template-columns:180px minmax(0,1fr) 340px}}
+@media(max-width:860px){
+  body{overflow:auto}
+  main{display:block;height:auto}
+  aside{display:flex;gap:8px;overflow-x:auto;border-right:none;border-bottom:1px solid var(--line);padding:11px}
+  .grp{display:none}
+  .lsn{flex:none;width:auto;margin:0;white-space:nowrap;padding:8px 13px}
+  .lsn .meta{display:none}
+  #boardWrap{height:430px}
+  #svgBox{min-height:300px}
+  #lesson{border-left:none;border-top:1px solid var(--line)}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="5" y="5" width="14" height="14" rx="2.5" stroke="#f0453a" stroke-width="1.6"/><rect x="9" y="9" width="6" height="6" rx="1.4" fill="#f0453a" opacity=".9"/><g stroke="#79858f" stroke-width="1.3" stroke-linecap="round"><path d="M9 5V2M12 5V2M15 5V2M9 22v-3M12 22v-3M15 22v-3M5 9H2M5 12H2M5 15H2M22 9h-3M22 12h-3M22 15h-3"/></g></svg>
+    ESP32<span style="color:var(--muted);font-weight:400">虚拟实验室</span>
+  </div>
+  <span class="pill">脚本化仿真 · 非真编译</span>
+  <div class="hstat"><span><b>3</b> 课</span><span><b>12</b> 可点部件</span><span>原创内容</span></div>
+</header>
+
+<main>
+  <!-- 课程侧栏 -->
+  <aside id="lsnList"></aside>
+
+  <!-- 板子可视化 -->
+  <section id="boardWrap">
+    <div id="boardBar">
+      <span class="cap">DEVKITC-1 · 交互原理图</span>
+      <span class="hint">滚轮缩放 · 拖拽平移 · 点击部件看说明</span>
+    </div>
+    <div id="progWrap"><div id="prog"></div></div>
+    <div id="svgBox">
+      <svg id="board" viewBox="0 0 760 460" preserveAspectRatio="xMidYMid meet">
+        <g id="viewport">
+          <!-- PCB -->
+          <g class="part" data-part="pcb">
+            <rect class="hit" x="60" y="46" width="640" height="368" rx="12"></rect>
+            <rect x="60" y="46" width="640" height="368" rx="12" fill="#12301f" stroke="#1d4a31" stroke-width="1.5"></rect>
+            <rect x="60" y="46" width="640" height="368" rx="12" fill="none" stroke="rgba(255,255,255,.04)"></rect>
+            <text class="silk silkw" x="86" y="76">ESP32 DevKitC-1</text>
+            <text class="silk" x="86" y="398">5V ⎔ 3.3V · I2C SPI UART</text>
+          </g>
+
+          <!-- USB Type-C -->
+          <g class="part" data-part="usb">
+            <rect class="hit" x="14" y="186" width="66" height="96" rx="7"></rect>
+            <rect x="14" y="186" width="66" height="96" rx="7" fill="#6b7684" stroke="#4c5560" stroke-width="1.2"></rect>
+            <rect x="24" y="202" width="46" height="64" rx="4" fill="#3a4149"></rect>
+            <text class="silk" x="8" y="300">USB-C</text>
+          </g>
+
+          <!-- ESP32 模组（金属罩 + 天线） -->
+          <g class="part" data-part="module">
+            <rect class="hit" x="150" y="110" width="208" height="180" rx="7"></rect>
+            <rect x="150" y="110" width="208" height="180" rx="7" fill="#b9c0c8" stroke="#8a929b" stroke-width="1.2"></rect>
+            <rect x="158" y="118" width="122" height="164" rx="4" fill="#98a1aa" stroke="#7c848d" stroke-width=".8"></rect>
+            <text class="silk" x="164" y="132" style="fill:#4a5158">ESP32-WROOM</text>
+            <!-- 天线区 -->
+            <g opacity=".8">
+              <rect x="290" y="118" width="60" height="164" rx="4" fill="#8f979f" stroke="#70787f" stroke-width=".6"></rect>
+              <g stroke="#5c646b" stroke-width="1" fill="none">
+                <path d="M298 128v146M308 128v146M318 128v146M328 128v146M338 128v146"/>
+                <path d="M290 140h60M290 156h60M290 172h60M290 188h60M290 204h60M290 220h60M290 236h60M290 252h60M290 268h60"/>
+              </g>
+            </g>
+            <text class="silk" x="290" y="298" style="fill:#4a5158">PCB 天线</text>
+          </g>
+
+          <!-- USB 转串口芯片 -->
+          <g class="part" data-part="usbchip">
+            <rect class="hit" x="150" y="312" width="96" height="62" rx="5"></rect>
+            <rect class="chipBody" x="150" y="312" width="96" height="62" rx="5" fill="#233043" stroke="#3a4c63" stroke-width="1"></rect>
+            <circle cx="166" cy="328" r="2.5" fill="#4c5f78"></circle>
+            <text class="silk" x="156" y="350" style="fill:#8b98a8">CH340/CP210x</text>
+            <text class="silk" x="156" y="364" style="fill:#5c6a78">USB⇄UART</text>
+          </g>
+
+          <!-- 3.3V 稳压 -->
+          <g class="part" data-part="vreg">
+            <rect class="hit" x="266" y="312" width="78" height="62" rx="5"></rect>
+            <rect x="266" y="312" width="78" height="62" rx="5" fill="#233043" stroke="#3a4c63" stroke-width="1"></rect>
+            <text class="silk" x="272" y="338" style="fill:#8b98a8">LDO</text>
+            <text class="silk" x="272" y="354" style="fill:#5c6a78">5V→3.3V</text>
+          </g>
+
+          <!-- 晶振 -->
+          <g class="part" data-part="xtal">
+            <rect class="hit" x="364" y="314" width="58" height="58" rx="29"></rect>
+            <ellipse cx="393" cy="343" rx="29" ry="29" fill="#1c2733" stroke="#394858" stroke-width="1.2"></ellipse>
+            <ellipse cx="393" cy="343" rx="20" ry="20" fill="none" stroke="#2c3a48" stroke-width=".8"></ellipse>
+            <text class="silk" x="372" y="392">晶振 26MHz</text>
+          </g>
+
+          <!-- EN 复位键 -->
+          <g class="part" data-part="en">
+            <rect class="hit" x="452" y="308" width="64" height="64" rx="7"></rect>
+            <rect x="456" y="312" width="56" height="56" rx="6" fill="#2a3340" stroke="#455366" stroke-width="1.2"></rect>
+            <circle cx="484" cy="340" r="13" fill="#1a222c" stroke="#546274" stroke-width="1"></circle>
+            <text class="silk silkw" x="463" y="392">EN 复位</text>
+          </g>
+
+          <!-- BOOT 键 -->
+          <g class="part" data-part="boot">
+            <rect class="hit" x="536" y="308" width="64" height="64" rx="7"></rect>
+            <rect x="540" y="312" width="56" height="56" rx="6" fill="#2a3340" stroke="#455366" stroke-width="1.2"></rect>
+            <circle cx="568" cy="340" r="13" fill="#1a222c" stroke="#546274" stroke-width="1"></circle>
+            <text class="silk silkw" x="543" y="392">BOOT</text>
+          </g>
+
+          <!-- 电源灯（常亮） -->
+          <g class="part" data-part="pwrled">
+            <rect class="hit" x="436" y="110" width="52" height="52" rx="8"></rect>
+            <circle cx="462" cy="136" r="9" fill="#3a1411"></circle>
+            <circle cx="462" cy="136" r="9" fill="none" stroke="#5c221b" stroke-width="1"></circle>
+            <circle cx="462" cy="136" r="4" fill="#ff5a4e"></circle>
+            <circle cx="462" cy="136" r="15" fill="#ff5a4e" opacity=".12"></circle>
+            <text class="silk" x="441" y="104">PWR</text>
+          </g>
+
+          <!-- 板载 LED（GPIO2，仿真驱动） -->
+          <g class="part st-led" id="ledPart" data-part="led">
+            <rect class="hit" x="520" y="110" width="52" height="52" rx="8"></rect>
+            <circle class="ledGlow" cx="546" cy="136" r="17" fill="#4da6ff" opacity="0"></circle>
+            <circle cx="546" cy="136" r="9" fill="#0e1a26" stroke="#1f3d5c" stroke-width="1"></circle>
+            <circle class="ledCore" cx="546" cy="136" r="4.5" fill="#1c3550"></circle>
+            <text class="silk" x="526" y="104">GPIO2</text>
+          </g>
+
+          <!-- 排针 -->
+          <g class="part" data-part="pinsL">
+            <rect class="hit" x="78" y="66" width="34" height="330" rx="6"></rect>
+            <g fill="#d8cfa0" stroke="#a89a6a" stroke-width=".5">
+              <circle cx="95" cy="86" r="4"/><circle cx="95" cy="116" r="4"/><circle cx="95" cy="146" r="4"/>
+              <circle cx="95" cy="176" r="4"/><circle cx="95" cy="206" r="4"/><circle cx="95" cy="236" r="4"/>
+              <circle cx="95" cy="266" r="4"/><circle cx="95" cy="296" r="4"/><circle cx="95" cy="326" r="4"/><circle cx="95" cy="356" r="4"/>
+            </g>
+            <text class="silk" x="72" y="60">J1</text>
+          </g>
+          <g class="part" data-part="pinsR">
+            <rect class="hit" x="648" y="66" width="34" height="330" rx="6"></rect>
+            <g fill="#d8cfa0" stroke="#a89a6a" stroke-width=".5">
+              <circle cx="665" cy="86" r="4"/><circle cx="665" cy="116" r="4"/><circle cx="665" cy="146" r="4"/>
+              <circle cx="665" cy="176" r="4"/><circle cx="665" cy="206" r="4"/><circle cx="665" cy="236" r="4"/>
+              <circle cx="665" cy="266" r="4"/><circle cx="665" cy="296" r="4"/><circle cx="665" cy="326" r="4"/><circle cx="665" cy="356" r="4"/>
+            </g>
+            <text class="silk" x="652" y="60">J3</text>
+          </g>
+
+          <!-- 丝印标注 -->
+          <text class="silk" x="150" y="96" style="fill:#5c6a78">USB 串口芯片与模组直连 TX/RX</text>
+        </g>
+      </svg>
+      <div id="pop"><div class="pk" id="popK"></div><div class="pt" id="popT"></div><div class="pd" id="popD"></div></div>
+    </div>
+    <div id="legend">
+      <span><i style="background:#ff5a4e"></i>电源灯·常亮</span>
+      <span><i style="background:#4da6ff"></i>板载 LED·GPIO2</span>
+      <span><i style="background:#2fc4b2"></i>串口传输中</span>
+      <span style="margin-left:auto">缩放 <b id="zoomLv" style="color:var(--text2)">100%</b> · 双击复位</span>
+    </div>
+  </section>
+
+  <!-- 课程面板 -->
+  <section id="lesson">
+    <div id="tabs">
+      <button class="tab on" data-tab="overview">概述</button>
+      <button class="tab" data-tab="wiring">接线</button>
+      <button class="tab" data-tab="points">知识点</button>
+    </div>
+    <div id="body"></div>
+    <div id="runBox">
+      <div id="runBar">
+        <span class="fn" id="codeFn">sketch.ino</span>
+        <button id="btnRun">▶ 运行</button>
+        <button id="btnStop">停止</button>
+        <span class="done" id="runState"></span>
+      </div>
+      <div id="codeBox"><pre id="codeOut"></pre></div>
+      <div id="serialBox">
+        <div id="serialHead">
+          <span class="dot" id="serDot"></span><span class="t">串口监视器 · 115200 baud</span>
+          <button id="serialClear">清空</button>
+        </div>
+        <div id="serial"></div>
+        <div id="inRow" class="hid">
+          <input id="serInput" placeholder="发给板子：输入文字回车" maxlength="80"></input>
+          <button id="serSend">发送</button>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+"use strict";
+/* ================= 部件说明 ================= */
+const PARTS = {
+  pcb:{t:"ESP32 DevKitC-1 开发板",d:"把<b>芯片、USB 转串口、稳压、排针</b>都做好的成品板。插上 USB-C 数据线就能开发，不用自己搭最小系统。丝印标了每个引脚的功能。"},
+  usb:{t:"USB-C 接口",d:"<b>供电 + 烧录 + 串口通信</b>三合一。注意要用<b>数据线</b>——纯充电线里没有 D+/D− 数据线，插上只充电不识别。"},
+  module:{t:"ESP32-WROOM 模组",d:"金属罩里是 ESP32 芯片：<b>双核 Xtensa 240MHz、4MB Flash</b>、内置 Wi-Fi + 蓝牙。右侧网格是<b>PCB 天线</b>，Wi-Fi/蓝牙信号从这里收发。金属罩同时屏蔽干扰。"},
+  usbchip:{t:"USB 转串口芯片",d:"把 USB 数据转成 UART 的 <b>TX/RX</b>，电脑才能和 ESP32 对话。你在 Arduino IDE 里选的那个 COM 口就是它。程序里 <code>Serial.print</code> 的内容经它送到电脑。"},
+  vreg:{t:"3.3V 稳压器（LDO）",d:"把 USB 的 <b>5V</b> 稳成 <b>3.3V</b> 给芯片和多数外设供电。所以 GPIO 的逻辑电平是 3.3V——<b>接 5V 信号会烧引脚</b>。"},
+  xtal:{t:"26MHz 晶振",d:"给串口芯片提供精确时钟。ESP32 芯片本身还有内部振荡器，外部晶振保证 Wi-Fi 射频频率够准。"},
+  en:{t:"EN 复位键",d:"按下让芯片<b>硬复位</b>，程序从头执行。烧录卡在 <code>Connecting…</code> 时，按住 BOOT 再按 EN 就进入下载模式。"},
+  boot:{t:"BOOT 键",d:"接在 <b>GPIO0</b> 上。上电时按住它，芯片进入<b>下载模式</b>等待烧录；程序里也能当普通按键输入用。"},
+  pwrled:{t:"电源指示灯（红）",d:"只要板子通上电就亮，确认供电正常的第一依据。不亮先查 USB 线和电源。"},
+  led:{t:"板载 LED（蓝）",d:"接在 <b>GPIO2</b> 上，高电平点亮。入门第一课的闪烁对象，不用外接任何元件。驱动电流小，适合做状态指示。"},
+  pinsL:{t:"左侧排针 J1",d:"含 <b>3V3、EN、GND、5V</b>，以及 ADC、DAC、部分 GPIO。具体每个脚的功能看板子背面或原理图的引脚表，别靠猜。"},
+  pinsR:{t:"右侧排针 J3",d:"含 <b>UART(TX/RX)、I²C(SDA/SCL)、SPI</b> 与常用 GPIO。接传感器前先对引脚表，注意哪些脚被 Flash/PSRAM 占用了。"}
+};
+
+/* ================= 三门原创课 ================= */
+const BOOT_NOISE = "ets Jun  8 2026 12:00:00\r\nrst:0x1 (POWERON_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)\r\n";
+
+const LESSONS = [
+{
+  id:1, no:"01", title:"认识开发板", meta:"零基础 · 5 分钟", group:"起步",
+  wiringHd:"接线：插一根线就行",
+  wiring:"<b>USB-C 数据线</b>（必须能传数据，不是纯充电线）一头插板子、一头插电脑。不用外接任何元件——这节课用的是<b>板载 LED</b>和板子自带的串口。",
+  pins:[["5V","供电"],["GND","地"],["GPIO2","板载 LED"]],
+  overview:[
+    [0,"<b>ESP32</b> 是乐鑫（Espressif）的<b>双核 32 位微控制器</b>，主频最高 240MHz，内置 2.4GHz Wi-Fi 和蓝牙——一块芯片就是一台能联网的小电脑。"],
+    [1,"<b>DevKitC</b> 是官方参考开发板：USB 转串口、3.3V 稳压、排针都做好了。你只需要一根 USB 数据线就能开始写程序。"],
+    [2,"这节课的目标：让板子开机后自我介绍一下（串口输出芯片型号），再让<b>板载蓝色 LED</b>闪起来。运行后注意看板子图上的 LED 和串口监视器。"]],
+  points:[
+    ["双核 240MHz","比 Arduino Uno（16MHz 单核）快十几倍，跑 Wi-Fi 协议栈的同时还能干别的活。"],
+    ["内置 Wi-Fi + 蓝牙","不用外接模块，做物联网项目的基础都在芯片里。"],
+    ["逻辑电平 3.3V","GPIO 最高承受 3.3V，<b>把 5V 信号直接接 GPIO 会烧引脚</b>。接 5V 外设要用电平转换。"],
+    ["USB-C 数据线","纯充电线没有数据线芯，插上只充电不识别串口——烧录失败先查这个。"]],
+  code:'<span class="c">// 第 1 课：让板子自我介绍 + 闪板载 LED</span>\n<span class="k">void</span> <span class="f">setup</span>() {\n  Serial.<span class="f">begin</span>(<span class="n">115200</span>);        <span class="c">// 打开串口，波特率 115200</span>\n  Serial.<span class="f">println</span>(<span class="s">"Hello, ESP32!"</span>);\n  Serial.<span class="f">printf</span>(<span class="s">"芯片型号: %s\\n"</span>, ESP.<span class="f">getChipModel</span>());\n  <span class="f">pinMode</span>(<span class="n">2</span>, OUTPUT);          <span class="c">// GPIO2 = 板载 LED</span>\n}\n\n<span class="k">void</span> <span class="f">loop</span>() {\n  <span class="f">digitalWrite</span>(<span class="n">2</span>, HIGH);  <span class="f">delay</span>(<span class="n">500</span>);\n  <span class="f">digitalWrite</span>(<span class="n">2</span>, LOW);   <span class="f">delay</span>(<span class="n">500</span>);\n}',
+  tl:[ {t:250,serial:"Hello, ESP32!"},
+       {t:380,serial:"芯片型号: ESP32-D0WD-V3 · 双核 240MHz"},
+       {t:520,serial:"板载 LED 开始闪烁（GPIO2 输出）"},
+       {t:700,led:"on",repeat:{every:1000,times:6}},
+       {t:1200,led:"off",repeat:{every:1000,times:6}} ],
+  input:false
+},
+{
+  id:2, no:"02", title:"LED 闪烁（GPIO 输出）", meta:"GPIO · 数字输出", group:"起步",
+  wiringHd:"接线：板载 LED 不用接线",
+  wiring:"板载蓝光 LED 已经接在 <b>GPIO2</b> 上，直接运行即可。想外接一颗 LED 玩玩：<b>LED 长脚（正极）→ 220Ω 电阻 → GPIO2</b>，短脚（负极）→ <b>GND</b>。串电阻限流，防止烧引脚。",
+  pins:[["GPIO2","→ 220Ω → LED 正极"],["GND","→ LED 负极"]],
+  overview:[
+    [0,"数字输出的本质：把一个 GPIO 拉成<b>高电平（3.3V）</b>或<b>低电平（0V）</b>。对 LED 来说就是<b>通电 / 断电</b>。"],
+    [1,"<code>pinMode(2, OUTPUT)</code> 声明方向，<code>digitalWrite(2, HIGH)</code> 输出高电平。这两行是所有「控制外设」代码的祖先。"],
+    [2,"这节课带你快闪（300ms 间隔）6 次，顺便理解 <code>delay()</code> 的代价：<b>delay 期间 CPU 啥也不干</b>——做项目时要用非阻塞定时器替代。"]],
+  points:[
+    ["GPIO2","DevKitC 板载 LED 所在引脚。高电平点亮，低电平熄灭。"],
+    ["digitalWrite(pin, level)","把引脚设为 HIGH(3.3V) 或 LOW(0V)。参数不带引号——它是宏不是字符串。"],
+    ["delay() 是阻塞的","delay(500) 的 500 毫秒里，CPU 完全停在这行，按钮扫描、Wi-Fi 收包全停。正式项目改用 millis() 计时。"],
+    ["限流电阻","外接 LED 串 220Ω 左右， GPIO 驱动电流上限约 20~40mA，直接接会过流。"]],
+  code:'<span class="c">// 第 2 课：GPIO2 数字输出，LED 快闪 6 次</span>\n<span class="k">const int</span> LED = <span class="n">2</span>;   <span class="c">// 板载 LED 接 GPIO2</span>\n\n<span class="k">void</span> <span class="f">setup</span>() {\n  Serial.<span class="f">begin</span>(<span class="n">115200</span>);\n  <span class="f">pinMode</span>(LED, OUTPUT);\n  Serial.<span class="f">println</span>(<span class="s">"GPIO2 设为输出，开始快闪"</span>);\n}\n\n<span class="k">void</span> <span class="f">loop</span>() {\n  <span class="f">digitalWrite</span>(LED, HIGH); <span class="f">delay</span>(<span class="n">300</span>);\n  <span class="f">digitalWrite</span>(LED, LOW);  <span class="f">delay</span>(<span class="n">300</span>);\n}',
+  tl:[ {t:250,serial:"GPIO2 设为输出，开始快闪"},
+       {t:450,led:"on",repeat:{every:600,times:6}},
+       {t:750,led:"off",repeat:{every:600,times:6}},
+       {t:4050,serial:"提示：把代码里两个 delay(300) 改成 delay(100)，重跑看看频率变化"} ],
+  input:false
+},
+{
+  id:3, no:"03", title:"串口通信：和板子对话", meta:"UART · 输入输出", group:"起步",
+  wiringHd:"接线：还是那根 USB 线",
+  wiring:"USB-C 数据线同时就是<b>串口线</b>——板载的 USB 转串口芯片把 ESP32 的 TX/RX 转成 USB 信号。所以插好线就能双向通信，不用接杜邦线。",
+  pins:[["GPIO1/TX","→ 串口芯片 → 电脑"],["GPIO3/RX","← 串口芯片 ← 电脑"]],
+  overview:[
+    [0,"<code>Serial.begin(115200)</code> 打开 UART0，波特率必须和电脑端一致（Arduino IDE 右下角那个数字）。"],
+    [1,"<b>输出</b>：print / println / printf 三件套——println 会多输出一个换行，printf 能格式化。"],
+    [2,"<b>输入</b>：电脑发来的数据先进串口缓冲区，用 <code>Serial.available()</code> 判断有没有数据，<code>readStringUntil('\\n')</code> 读出来。这节课可以<b>真打字发给板子</b>——下面的串口输入框就是你的键盘。"]],
+  points:[
+    ["TX/RX 交叉","板子的 TX 发出去、RX 收回来，经 USB 转串口芯片与电脑双向通信。"],
+    ["available() 先判断","直接 read 在缓冲区空时会阻塞或返回空字符串，养成先判断的习惯。"],
+    ["readStringUntil('\\n')","读到换行才返回。电脑端记得发的时候带换行（串口监视器的输入框回车自动带）。"],
+    ["printf 格式化","%s 字符串、%d 整数、%.2f 两位小数。比 println 拼接字符串干净。"]],
+  code:'<span class="c">// 第 3 课：双向串口——收到什么，回显什么</span>\n<span class="k">void</span> <span class="f">setup</span>() {\n  Serial.<span class="f">begin</span>(<span class="n">115200</span>);\n  Serial.<span class="f">println</span>(<span class="s">"串口已就绪，在监视器里发点什么给我"</span>);\n}\n\n<span class="k">void</span> <span class="f">loop</span>() {\n  <span class="k">if</span> (Serial.<span class="f">available</span>()) {            <span class="c">// 缓冲区有数据？</span>\n    String s = Serial.<span class="f">readStringUntil</span>(<span class="s">\'\\n\'</span>);\n    Serial.<span class="f">print</span>(<span class="s">"收到: "</span>); Serial.<span class="f">println</span>(s);  <span class="c">// 回显</span>\n  }\n  Serial.<span class="f">printf</span>(<span class="s">"tick %ds\\n"</span>, millis()/<span class="n">1000</span>);\n  <span class="f">delay</span>(<span class="n">1000</span>);   <span class="c">// 每秒报一次时</span>\n}',
+  tl:[ {t:250,serial:"串口已就绪，在监视器里发点什么给我"},
+       {t:1000,serial:"tick 1s",repeat:{every:1000,times:4}},
+       {t:1400,serial:"(试试在下面输入框打字发给板子)"} ],
+  input:true
+}
+];
+
+/* ================= 引擎 ================= */
+const $ = s => document.querySelector(s);
+const serial = $("#serial"), codeOut = $("#codeOut"), body = $("#body");
+let cur = 0, timers = [], running = false, t0 = 0, rafId = null, lastT = 0;
+
+function expandTl(tl){
+  const out = [];
+  tl.forEach(e => {
+    if (e.repeat){
+      for (let i = 0; i < e.repeat.times; i++) out.push(Object.assign({}, e, {t: e.t + i * e.repeat.every}));
+    } else out.push(e);
+  });
+  return out.sort((a,b) => a.t - b.t);
+}
+function hwSet(part, on){
+  const el = document.querySelector('.part[data-part="'+part+'"]');
+  if (el) el.classList.toggle("on", !!on);
+}
+function chipPing(){
+  const c = document.querySelector('.part[data-part="usbchip"]');
+  c.classList.add("on");
+  clearTimeout(c._p);
+  c._p = setTimeout(() => c.classList.remove("on"), 180);
+}
+function serialLn(text, cls){
+  const d = document.createElement("div");
+  d.className = "ln" + (cls ? " " + cls : "");
+  const el = (text === null) ? "--- 程序结束 ---" : text;
+  if (cls === "noise"){ d.textContent = el; d.classList.add("noise"); }
+  else if (cls === "end"){ d.textContent = el; d.classList.add("end"); }
+  else {
+    const elapsed = ((Date.now() - t0) / 1000).toFixed(3);
+    d.innerHTML = '<span class="ts">[' + elapsed + 's]</span>';
+    d.appendChild(document.createTextNode(String(el)));
+  }
+  serial.appendChild(d);
+  serial.scrollTop = serial.scrollHeight;
+}
+function stop(auto){
+  timers.forEach(clearTimeout); timers = [];
+  cancelAnimationFrame(rafId);
+  if (running || auto === true){
+    document.querySelectorAll(".part.on").forEach(el => { if (el.dataset.part !== "pwrled") el.classList.remove("on"); });
+  }
+  running = false;
+  $("#btnRun").disabled = false;
+  $("#btnRun").textContent = "▶ 运行";
+  $("#serDot").classList.remove("live");
+  $("#prog").style.width = "0%";
+  $("#runState").textContent = "";
+}
+function run(){
+  stop(true);
+  const L = LESSONS[cur];
+  t0 = Date.now();
+  lastT = 0;
+  const tl = expandTl(L.tl);
+  tl.forEach(e => { if (e.t > lastT) lastT = e.t; });
+  codeOut.innerHTML = L.code;
+  serial.innerHTML = "";
+  serialLn(BOOT_NOISE, "noise");
+  running = true;
+  $("#btnRun").disabled = true;
+  $("#btnRun").textContent = "运行中…";
+  $("#serDot").classList.add("live");
+  $("#runState").textContent = "";
+  tl.forEach(e => timers.push(setTimeout(() => fire(e), e.t + 500)));
+  timers.push(setTimeout(() => { serialLn(null, "end"); stop(true); $("#runState").textContent = "✓ 播放结束"; }, lastT + 900));
+  (function prog(){
+    if (!running) return;
+    const p = Math.min(100, ((Date.now() - t0) / (lastT + 500)) * 100);
+    $("#prog").style.width = p + "%";
+    rafId = requestAnimationFrame(prog);
+  })();
+}
+function fire(e){
+  if (e.serial !== undefined){ serialLn(e.serial); chipPing(); }
+  if (e.led !== undefined) hwSet("led", e.led === "on");
+  if (e.part !== undefined && e.state !== undefined) hwSet(e.part, e.state === "on");
+}
+
+/* ================= 课程面板渲染 ================= */
+function renderLesson(){
+  const L = LESSONS[cur];
+  codeOut.innerHTML = L.code;
+  $("#codeFn").textContent = "lesson_" + L.id + ".ino";
+  $("#inRow").classList.toggle("hid", !L.input);
+  document.querySelectorAll(".tab").forEach(t => t.classList.toggle("on", t.dataset.tab === "overview"));
+  renderBody("overview");
+  stop(true);
+}
+function renderBody(tab){
+  const L = LESSONS[cur];
+  let h = "";
+  if (tab === "overview"){
+    h += '<h3>' + L.no + " · " + L.title + '</h3>';
+    L.overview.forEach(p => { h += '<p>' + p[1].replace(/`([^`]+)`/g, '<code>$1</code>') + '</p>'; });
+    h += '<div class="callout"><b>怎么看效果：</b>点左下「▶ 运行」，盯住板子图上的<b>蓝色 LED</b> 和下方<b>串口监视器</b>——时间轴驱动的仿真播放，不是真编译。</div>';
+  } else if (tab === "wiring"){
+    h += '<div class="wire"><div class="wh">' + L.wiringHd + '</div><p>' + L.wiring + '</p>';
+    if (L.pins){ h += '<div class="pinrow">'; L.pins.forEach(p => { h += '<span class="pin' + (p[0].indexOf("GPIO") >= 0 ? " hot" : "") + '">' + p[0] + " · " + p[1] + "</span>"; }); h += "</div>"; }
+    h += "</div>";
+    h += '<div class="callout"><b>仿真说明：</b>虚拟板子按接线状态自动呈现，你不需要真的插线。外接 LED 的课在现实里记得串 <b>220Ω</b> 电阻。</div>';
+  } else {
+    h += '<h3>这课的四个要点</h3><ul>';
+    L.points.forEach(p => { h += "<li><b>" + p[0] + "</b><br>" + p[1] + "</li>"; });
+    h += "</ul>";
+  }
+  body.innerHTML = h;
+}
+
+/* ================= 侧栏 ================= */
+function renderList(){
+  const box = $("#lsnList");
+  let last = null, h = "";
+  LESSONS.forEach((L, i) => {
+    if (L.group !== last){ h += '<div class="grp">' + L.group + '</div>'; last = L.group; }
+    h += '<button class="lsn' + (i === cur ? " on" : "") + '" data-i="' + i + '"><span class="no">' + L.no + '</span><span class="tt">' + L.title + '</span><span class="meta">' + L.meta + "</span></button>";
+  });
+  box.innerHTML = h;
+  box.querySelectorAll(".lsn").forEach(b => b.onclick = () => { cur = +b.dataset.i; renderList(); renderLesson(); });
+}
+
+/* ================= 部件交互 ================= */
+const pop = $("#pop");
+function showPop(el, part){
+  const info = PARTS[part]; if (!info) return;
+  $("#popK").textContent = part === "pcb" ? "开发板" : "板载部件";
+  $("#popT").textContent = info.t;
+  $("#popD").innerHTML = info.d;
+  document.querySelectorAll(".part.sel").forEach(x => x.classList.remove("sel"));
+  el.classList.add("sel");
+  const r = el.getBoundingClientRect(), box = $("#svgBox").getBoundingClientRect();
+  pop.classList.add("show");
+  pop.style.left = Math.min(box.width - 310, Math.max(8, r.left - box.left + r.width / 2 - 30)) + "px";
+  pop.style.top = Math.min(box.height - 150, Math.max(8, r.top - box.top + 10)) + "px";
+}
+document.querySelectorAll(".part").forEach(el => {
+  el.addEventListener("click", ev => { ev.stopPropagation(); showPop(el, el.dataset.part); });
+});
+$("#svgBox").addEventListener("click", () => { pop.classList.remove("show"); document.querySelectorAll(".part.sel").forEach(x => x.classList.remove("sel")); });
+
+/* ================= 缩放 / 平移 ================= */
+const vp = $("#viewport"), board = $("#board");
+let k = 1, tx = 0, ty = 0, drag = null;
+function applyVp(){ vp.setAttribute("transform", "translate(" + tx + "," + ty + ") scale(" + k + ")"); $("#zoomLv").textContent = Math.round(k * 100) + "%"; }
+board.addEventListener("wheel", ev => {
+  ev.preventDefault();
+  const f = ev.deltaY < 0 ? 1.12 : 1 / 1.12;
+  const nk = Math.min(3.2, Math.max(0.55, k * f));
+  const r = board.getBoundingClientRect();
+  const mx = ev.clientX - r.left, my = ev.clientY - r.top;
+  tx = mx - (mx - tx) * (nk / k);
+  ty = my - (my - ty) * (nk / k);
+  k = nk; applyVp();
+}, { passive: false });
+board.addEventListener("pointerdown", ev => {
+  if (ev.target.closest(".part")) return;
+  drag = { x: ev.clientX, y: ev.clientY, tx: tx, ty: ty };
+  board.classList.add("drag"); board.setPointerCapture(ev.pointerId);
+});
+board.addEventListener("pointermove", ev => {
+  if (!drag) return;
+  tx = drag.tx + (ev.clientX - drag.x);
+  ty = drag.ty + (ev.clientY - drag.y);
+  applyVp();
+});
+board.addEventListener("pointerup", () => { drag = null; board.classList.remove("drag"); });
+board.addEventListener("dblclick", () => { k = 1; tx = 0; ty = 0; applyVp(); pop.classList.remove("show"); });
+
+/* ================= 串口输入（第 3 课回显） ================= */
+function sendSerial(){
+  const v = $("#serInput").value.trim();
+  if (!v || !running) return;
+  serialLn("> " + v, "tx"); chipPing();
+  setTimeout(() => { serialLn("收到: " + v, "rx"); chipPing(); }, 220);
+  $("#serInput").value = "";
+}
+$("#serSend").onclick = sendSerial;
+$("#serInput").addEventListener("keydown", ev => { if (ev.key === "Enter") sendSerial(); });
+
+/* ================= 其它 ================= */
+$("#btnRun").onclick = run;
+$("#btnStop").onclick = () => stop(true);
+$("#serialClear").onclick = () => { serial.innerHTML = ""; };
+document.querySelectorAll(".tab").forEach(t => t.onclick = () => { document.querySelectorAll(".tab").forEach(x => x.classList.remove("on")); t.classList.add("on"); renderBody(t.dataset.tab); });
+
+renderList();
+renderLesson();
+window.addEventListener("error", e => { document.body.setAttribute("data-err", e.message); });
+/* 自检模式：URL 带 ?audit 时运行，结果写进 title（供 headless 核对，正式版零影响） */
+if (location.search.indexOf("audit") >= 0){
+  setTimeout(() => {
+    const r = { iw: innerWidth, sw: document.documentElement.scrollWidth,
+      sh: document.documentElement.scrollHeight, ih: innerHeight,
+      parts: document.querySelectorAll(".part").length };
+    const b = document.querySelector("#svgBox").getBoundingClientRect();
+    r.board = [Math.round(b.width), Math.round(b.height)];
+    r.serialH = document.querySelector("#serialBox").offsetHeight;
+    r.codeH = document.querySelector("#codeBox").offsetHeight;
+    r.bodyH = document.querySelector("#body").offsetHeight;
+    r.over = [];
+    document.querySelectorAll("#body p,#body li,.tab,.lsn .tt,.wire .pin,#serial .ln").forEach(el => {
+      if (el.scrollWidth > el.clientWidth + 1) r.over.push((el.className || el.tagName) + ":" + el.textContent.slice(0,12));
+    });
+    const lay = document.querySelector("main");
+    r.layH = getComputedStyle(lay).gridTemplateColumns;
+    document.title = "AUDIT " + JSON.stringify(r);
+  }, 700);
+}
+/* 播放自检：?play 自动运行第 1 课，核对串口行数与 LED 联动 */
+if (location.search.indexOf("play") >= 0){
+  setTimeout(() => {
+    run();
+    setTimeout(() => {
+      const ledOn = document.querySelector("#ledPart").classList.contains("on");
+      const chipOn = document.querySelector('.part[data-part="usbchip"]').classList.contains("on");
+      document.title = "PLAY " + JSON.stringify({lines: serial.children.length, led: ledOn, chip: chipOn, running: running});
+    }, 2600);
+  }, 400);
+}
+/* e2e 场景自检：?e2e=<mode>，覆盖切课/运行/输入/弹窗/tabs/缩放 */
+if (new URLSearchParams(location.search).has("e2e")){
+  const mode = new URLSearchParams(location.search).get("e2e");
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  setTimeout(async () => {
+    const R = {};
+    try{
+      if (mode === "l2"){
+        cur = 1; renderList(); renderLesson(); run();
+        await sleep(1700); R.ledAt = document.querySelector("#ledPart").classList.contains("on");
+        await sleep(2100); R.lines = serial.children.length; R.running = running;
+      } else if (mode === "l3"){
+        cur = 2; renderList(); renderLesson(); run();
+        await sleep(1200);
+        $("#serInput").value = "hi board"; sendSerial();
+        await sleep(700);
+        R.lines = serial.children.length;
+        R.echoFound = Array.prototype.some.call(serial.children, el => el.textContent.indexOf("收到: hi board") >= 0);
+        R.txFound = Array.prototype.some.call(serial.children, el => el.textContent.indexOf("> hi board") >= 0);
+        R.inputShown = !document.querySelector("#inRow").classList.contains("hid");
+        R.fn = document.querySelector("#codeFn").textContent;
+      } else if (mode === "l1"){
+        cur = 0; renderList(); renderLesson();
+        R.fn = document.querySelector("#codeFn").textContent;
+        R.tabs = document.querySelectorAll(".tab").length;
+        run(); await sleep(1000);
+        R.lines1s = serial.children.length;
+        R.noise = serial.firstElementChild.classList.contains("noise");
+      } else if (mode === "pop"){
+        const tgt = document.querySelector('.part[data-part="usbchip"]');
+        tgt.dispatchEvent(new MouseEvent("click", {bubbles: true}));
+        await sleep(120);
+        R.popShow = document.querySelector("#pop").classList.contains("show");
+        R.popT = document.querySelector("#popT").textContent;
+        R.popLen = document.querySelector("#popD").textContent.length;
+        document.querySelector("#svgBox").click();
+        await sleep(80);
+        R.popHidden = !document.querySelector("#pop").classList.contains("show");
+      } else if (mode === "tabs"){
+        document.querySelector('[data-tab="wiring"]').click();
+        await sleep(60);
+        R.wire = !!document.querySelector(".wire");
+        R.pins = document.querySelectorAll(".wire .pin").length;
+        document.querySelector('[data-tab="points"]').click();
+        await sleep(60);
+        R.points = document.querySelectorAll("#body li").length;
+      } else if (mode === "zoom"){
+        document.querySelector("#board").dispatchEvent(new WheelEvent("wheel", {deltaY: -240, bubbles: true, cancelable: true}));
+        await sleep(60);
+        R.zoom = document.querySelector("#zoomLv").textContent;
+        R.tf = document.querySelector("#viewport").getAttribute("transform");
+        document.querySelector("#board").dispatchEvent(new MouseEvent("dblclick", {bubbles: true}));
+        await sleep(60);
+        R.reset = document.querySelector("#zoomLv").textContent;
+      }
+    }catch(err){ R.err = String(err.message || err); }
+    document.title = "E2E " + JSON.stringify(Object.assign({mode: mode}, R));
+  }, 400);
+}
+</script>
+</body>
+</html>
