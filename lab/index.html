@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ESP32 虚拟实验室 · 浏览器里玩转第一块开发板</title>
-<meta name="description" content="原创的 ESP32 浏览器虚拟实验室：可拆解的 DevKitC 交互图、脚本化仿真、串口回显、PWM 呼吸灯、按键与 Wi-Fi 交互，六门原创课。零依赖单文件。">
+<meta name="description" content="原创的 ESP32 浏览器虚拟实验室：可拆解的 DevKitC 交互图、脚本化仿真、串口回显、PWM 呼吸灯、按键与 Wi-Fi 交互，十门原创课。零依赖单文件。">
 <style>
 :root{
   --bg:#0d1117; --panel:#151b24; --panel2:#10161f; --line:#28313f; --line-soft:#1d2532;
@@ -29,9 +29,13 @@ header{height:54px;display:flex;align-items:center;gap:14px;padding:0 18px;borde
 .hstat{margin-left:auto;display:flex;gap:16px;font-family:var(--mono);font-size:11px;color:var(--muted)}
 .hstat b{color:var(--text2);font-weight:600}
 .pill{border:1px solid var(--line);border-radius:99px;padding:3px 11px;font-size:11px;color:var(--teal);font-family:var(--mono)}
+#langBtn{background:var(--panel);border:1px solid var(--line);border-radius:7px;color:var(--teal);font-family:var(--mono);font-size:11px;padding:5px 11px}
+#langBtn:hover{border-color:var(--teal)}
 
 /* ---------- 三栏布局 ---------- */
-main{display:grid;grid-template-columns:210px minmax(0,1fr) 400px;height:calc(100vh - 54px)}
+main{display:grid;grid-template-columns:210px minmax(0,1fr) 400px;height:calc(100vh - 54px - 30px)}
+#labFoot{height:30px;display:flex;align-items:center;justify-content:center;gap:5px;font-size:10.5px;color:var(--muted);background:var(--panel2);border-top:1px solid var(--line-soft);padding:0 12px;text-align:center}
+#labFoot a{color:var(--teal);text-decoration:none}#labFoot a:hover{text-decoration:underline}
 aside{border-right:1px solid var(--line);background:var(--panel2);overflow-y:auto;padding:14px 12px}
 .grp{font-size:10.5px;font-family:var(--mono);letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin:6px 4px 9px}
 .lsn{display:block;width:100%;text-align:left;background:none;border:1px solid transparent;border-radius:9px;padding:9px 11px;color:var(--text2);font-size:13px;margin-bottom:5px;transition:.14s;position:relative}
@@ -172,6 +176,7 @@ aside{border-right:1px solid var(--line);background:var(--panel2);overflow-y:aut
   #boardWrap{height:430px}
   #svgBox{min-height:300px}
   #lesson{border-left:none;border-top:1px solid var(--line)}
+  #labFoot{height:auto;min-height:30px;padding:7px 12px;line-height:1.5}
 }
 </style>
 </head>
@@ -179,10 +184,11 @@ aside{border-right:1px solid var(--line);background:var(--panel2);overflow-y:aut
 <header>
   <div class="logo">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="5" y="5" width="14" height="14" rx="2.5" stroke="#f0453a" stroke-width="1.6"/><rect x="9" y="9" width="6" height="6" rx="1.4" fill="#f0453a" opacity=".9"/><g stroke="#79858f" stroke-width="1.3" stroke-linecap="round"><path d="M9 5V2M12 5V2M15 5V2M9 22v-3M12 22v-3M15 22v-3M5 9H2M5 12H2M5 15H2M22 9h-3M22 12h-3M22 15h-3"/></g></svg>
-    ESP32<span style="color:var(--muted);font-weight:400">虚拟实验室</span>
+    ESP32<span style="color:var(--muted);font-weight:400" data-i18n="虚拟实验室">虚拟实验室</span>
   </div>
-  <span class="pill">脚本化仿真 · 非真编译</span>
-  <div class="hstat"><span><b>6</b> 课</span><span><b>12</b> 可点部件</span><span>原创内容</span></div>
+  <span class="pill" data-i18n="脚本化仿真 · 非真编译">脚本化仿真 · 非真编译</span>
+  <div class="hstat"><span><b>10</b> <i data-i18n="课">课</i></span><span><b>12</b> <i data-i18n="可点部件">可点部件</i></span><span data-i18n="原创内容">原创内容</span></div>
+  <button id="langBtn" title="Language">EN</button>
 </header>
 
 <main>
@@ -192,8 +198,8 @@ aside{border-right:1px solid var(--line);background:var(--panel2);overflow-y:aut
   <!-- 板子可视化 -->
   <section id="boardWrap">
     <div id="boardBar">
-      <span class="cap">DEVKITC-1 · 交互原理图</span>
-      <span class="hint">滚轮缩放 · 拖拽平移 · 点击部件看说明</span>
+      <span class="cap" data-i18n="DEVKITC-1 · 交互原理图">DEVKITC-1 · 交互原理图</span>
+      <span class="hint" data-i18n="滚轮缩放 · 拖拽平移 · 点击部件看说明">滚轮缩放 · 拖拽平移 · 点击部件看说明</span>
     </div>
     <div id="progWrap"><div id="prog"></div></div>
     <div id="svgBox">
@@ -330,34 +336,36 @@ aside{border-right:1px solid var(--line);background:var(--panel2);overflow-y:aut
   <!-- 课程面板 -->
   <section id="lesson">
     <div id="tabs">
-      <button class="tab on" data-tab="overview">概述</button>
-      <button class="tab" data-tab="wiring">接线</button>
-      <button class="tab" data-tab="points">知识点</button>
+      <button class="tab on" data-tab="overview" data-i18n="概述">概述</button>
+      <button class="tab" data-tab="wiring" data-i18n="接线">接线</button>
+      <button class="tab" data-tab="points" data-i18n="知识点">知识点</button>
     </div>
     <div id="body"></div>
     <div id="runBox">
       <div id="runBar">
         <span class="fn" id="codeFn">sketch.ino</span>
-        <button id="btnRun">▶ 运行</button>
-        <button id="btnStop">停止</button>
+        <button id="btnRun" data-i18n="▶ 运行">▶ 运行</button>
+        <button id="btnStop" data-i18n="停止">停止</button>
         <span class="done" id="runState"></span>
       </div>
       <div id="codeBox"><pre id="codeOut"></pre></div>
       <div id="serialBox">
         <div id="serialHead">
-          <span class="dot" id="serDot"></span><span class="t">串口监视器 · 115200 baud</span>
-          <button id="serialClear">清空</button>
+          <span class="dot" id="serDot"></span><span class="t" data-i18n="串口监视器 · 115200 baud">串口监视器 · 115200 baud</span>
+          <button id="serialClear" data-i18n="清空">清空</button>
         </div>
         <div id="serial"></div>
         <div id="inRow" class="hid">
-          <input id="serInput" placeholder="发给板子：输入文字回车" maxlength="80"></input>
-          <button id="serSend">发送</button>
+          <input id="serInput" placeholder="发给板子：输入文字回车" data-i18n-ph="发给板子：输入文字回车" maxlength="80"></input>
+          <button id="serSend" data-i18n="发送">发送</button>
         </div>
-        <div id="bootHint" class="hid">👆 点一下板子图上的 <b>BOOT 键</b>（GPIO0），串口会记录你的按键</div>
+        <div id="bootHint" class="hid">👆 点一下板子图上的 <b data-i18n="BOOT 键">BOOT 键</b>（GPIO0），串口会记录你的按键</div>
       </div>
     </div>
   </section>
 </main>
+
+<footer id="labFoot">课程内容原创撰写；课程结构与选题参考 <a href="https://github.com/agharsallah/esp-labs-web" target="_blank" rel="noopener">ESP32 Labs</a> by Abderrehmen Gharsallah（MIT License）。仿真为脚本化预设行为，非真实编译。</footer>
 
 <!-- 留言区：因 giscus.app 大陆网络不稳定（加载超时/空白），按用户要求暂时隐藏。
      恢复方法：删除下方 <section id="comments" hidden> 里的 hidden 属性即可，全部代码保留。 -->
@@ -379,6 +387,32 @@ aside{border-right:1px solid var(--line);background:var(--panel2);overflow-y:aut
 
 <script>
 "use strict";
+
+/* ================= i18n（默认中文，localStorage 记忆） ================= */
+window.I18N = {"t":{"ESP32 DevKitC-1 开发板":"ESP32 DevKitC-1 development board","把<b>芯片、USB 转串口、稳压、排针</b>都做好的成品板。插上 USB-C 数据线就能开发，不用自己搭最小系统。丝印标了每个引脚的功能。":"A ready-made board integrating the <b>chip, USB-serial, regulator and headers</b>. Plug in a USB-C cable and start coding — no minimum system to build. Silkscreen marks every pin.","USB-C 接口":"USB-C port","<b>供电 + 烧录 + 串口通信</b>三合一。注意要用<b>数据线</b>——纯充电线里没有 D+/D− 数据线，插上只充电不识别。":"<b>Power + flashing + serial</b> in one. Use a <b>data cable</b> — charge-only cables lack D+/D− and will power but not enumerate.","ESP32-WROOM 模组":"ESP32-WROOM module","金属罩里是 ESP32 芯片：<b>双核 Xtensa 240MHz、4MB Flash</b>、内置 Wi-Fi + 蓝牙。右侧网格是<b>PCB 天线</b>，Wi-Fi/蓝牙信号从这里收发。金属罩同时屏蔽干扰。":"Under the metal can is the ESP32: <b>dual-core Xtensa 240MHz, 4MB Flash</b>, built-in Wi-Fi + Bluetooth. The grid on the right is the <b>PCB antenna</b> where RF signals are sent and received. The can also shields interference.","USB 转串口芯片":"USB-to-serial chip","把 USB 数据转成 UART 的 <b>TX/RX</b>，电脑才能和 ESP32 对话。你在 Arduino IDE 里选的那个 COM 口就是它。程序里 <code>Serial.print</code> 的内容经它送到电脑。":"Converts USB to UART <b>TX/RX</b> so your PC can talk to the ESP32. The COM port you pick in Arduino IDE is this chip. Everything you print with <code>Serial.print</code> goes through it.","3.3V 稳压器（LDO）":"3.3V regulator (LDO)","把 USB 的 <b>5V</b> 稳成 <b>3.3V</b> 给芯片和多数外设供电。所以 GPIO 的逻辑电平是 3.3V——<b>接 5V 信号会烧引脚</b>。":"Steps USB <b>5V</b> down to <b>3.3V</b> for the chip and most peripherals. GPIO logic is therefore 3.3V — <b>feeding 5V into a pin will damage it</b>.","26MHz 晶振":"26MHz crystal","给串口芯片提供精确时钟。ESP32 芯片本身还有内部振荡器，外部晶振保证 Wi-Fi 射频频率够准。":"Provides an accurate clock for the USB-serial chip. The ESP32 also has an internal oscillator, but the external crystal keeps Wi-Fi RF frequency accurate.","EN 复位键":"EN reset button","按下让芯片<b>硬复位</b>，程序从头执行。烧录卡在 <code>Connecting…</code> 时，按住 BOOT 再按 EN 就进入下载模式。":"Pressing it <b>hard-resets</b> the chip and restarts your sketch. If flashing stalls at <code>Connecting…</code>, hold BOOT then tap EN to enter download mode.","BOOT 键":"BOOT button","接在 <b>GPIO0</b> 上。上电时按住它，芯片进入<b>下载模式</b>等待烧录；程序里也能当普通按键输入用。":"Connected to <b>GPIO0</b>. Hold it at power-on to enter <b>download mode</b> for flashing; at runtime it works as a normal input button.","电源指示灯（红）":"Power indicator (red)","只要板子通上电就亮，确认供电正常的第一依据。不亮先查 USB 线和电源。":"On whenever the board has power — the first sign of a healthy supply. If dark, check the USB cable and source first.","板载 LED（蓝）":"Onboard LED (blue)","接在 <b>GPIO2</b> 上，高电平点亮。入门第一课的闪烁对象，不用外接任何元件。驱动电流小，适合做状态指示。":"Connected to <b>GPIO2</b>, lit by a HIGH signal. The first lesson blinks it with no external parts. Low drive current makes it ideal as a status indicator.","左侧排针 J1":"Left header J1","含 <b>3V3、EN、GND、5V</b>，以及 ADC、DAC、部分 GPIO。具体每个脚的功能看板子背面或原理图的引脚表，别靠猜。":"Has <b>3V3, EN, GND, 5V</b> plus ADC, DAC and some GPIOs. Check the pinout on the board back or schematic — never guess.","右侧排针 J3":"Right header J3","含 <b>UART(TX/RX)、I²C(SDA/SCL)、SPI</b> 与常用 GPIO。接传感器前先对引脚表，注意哪些脚被 Flash/PSRAM 占用了。":"Has <b>UART(TX/RX), I²C(SDA/SCL), SPI</b> and common GPIOs. Check the pinout before wiring sensors; some pins are taken by Flash/PSRAM.","认识开发板":"Meet the dev board","零基础 · 5 分钟":"Beginner · 5 min","起步":"Getting started","接线：插一根线就行":"Wiring: just one cable","<b>USB-C 数据线</b>（必须能传数据，不是纯充电线）一头插板子、一头插电脑。不用外接任何元件——这节课用的是<b>板载 LED</b>和板子自带的串口。":"A <b>USB-C data cable</b> (must carry data, not charge-only) from the board to your PC. No external parts — this lesson uses the <b>onboard LED</b> and built-in serial.","供电":"power","地":"ground","板载 LED":"onboard LED","<b>ESP32</b> 是乐鑫（Espressif）的<b>双核 32 位微控制器</b>，主频最高 240MHz，内置 2.4GHz Wi-Fi 和蓝牙——一块芯片就是一台能联网的小电脑。":"The <b>ESP32</b> is Espressif's <b>dual-core 32-bit MCU</b>, up to 240MHz, with built-in 2.4GHz Wi-Fi and Bluetooth — a tiny networked computer on one chip.","<b>DevKitC</b> 是官方参考开发板：USB 转串口、3.3V 稳压、排针都做好了。你只需要一根 USB 数据线就能开始写程序。":"<b>DevKitC</b> is the official reference board: USB-serial, 3.3V regulator and headers are all included. One USB data cable is all you need to start coding.","这节课的目标：让板子开机后自我介绍一下（串口输出芯片型号），再让<b>板载蓝色 LED</b>闪起来。运行后注意看板子图上的 LED 和串口监视器。":"Goal: have the board introduce itself on boot (print the chip model over serial), then blink the <b>onboard blue LED</b>. After running, watch the LED on the board and the serial monitor.","双核 240MHz":"Dual-core 240MHz","比 Arduino Uno（16MHz 单核）快十几倍，跑 Wi-Fi 协议栈的同时还能干别的活。":"Over ten times faster than an Arduino Uno (16MHz single-core); can run the Wi-Fi stack and still do other work.","内置 Wi-Fi + 蓝牙":"Built-in Wi-Fi + Bluetooth","不用外接模块，做物联网项目的基础都在芯片里。":"No external module needed — the basics for IoT projects are all in the chip.","逻辑电平 3.3V":"3.3V logic level","GPIO 最高承受 3.3V，<b>把 5V 信号直接接 GPIO 会烧引脚</b>。接 5V 外设要用电平转换。":"GPIO tolerates at most 3.3V; <b>feeding 5V into a pin will damage it</b>. Use a level shifter for 5V peripherals.","USB-C 数据线":"USB-C data cable","纯充电线没有数据线芯，插上只充电不识别串口——烧录失败先查这个。":"Charge-only cables lack data lines — they power but never enumerate. Check this first when flashing fails.","芯片型号: ESP32-D0WD-V3 · 双核 240MHz":"Chip model: ESP32-D0WD-V3 · dual-core 240MHz","板载 LED 开始闪烁（GPIO2 输出）":"Onboard LED blinking (GPIO2 output)","LED 闪烁（GPIO 输出）":"LED blink (GPIO output)","GPIO · 数字输出":"GPIO · digital output","接线：板载 LED 不用接线":"Wiring: onboard LED needs none","板载蓝光 LED 已经接在 <b>GPIO2</b> 上，直接运行即可。想外接一颗 LED 玩玩：<b>LED 长脚（正极）→ 220Ω 电阻 → GPIO2</b>，短脚（负极）→ <b>GND</b>。串电阻限流，防止烧引脚。":"The onboard blue LED is already wired to <b>GPIO2</b> — just run. To add an external LED: <b>long leg (anode) → 220Ω resistor → GPIO2</b>, short leg (cathode) → <b>GND</b>. The resistor limits current to protect the pin.","→ 220Ω → LED 正极":"→ 220Ω → LED anode","→ LED 负极":"→ LED cathode","数字输出的本质：把一个 GPIO 拉成<b>高电平（3.3V）</b>或<b>低电平（0V）</b>。对 LED 来说就是<b>通电 / 断电</b>。":"Digital output means driving a GPIO to <b>HIGH (3.3V)</b> or <b>LOW (0V)</b>. For an LED that is simply <b>on / off</b>.","<code>pinMode(2, OUTPUT)</code> 声明方向，<code>digitalWrite(2, HIGH)</code> 输出高电平。这两行是所有「控制外设」代码的祖先。":"<code>pinMode(2, OUTPUT)</code> sets the direction; <code>digitalWrite(2, HIGH)</code> drives it high. These two lines are the ancestors of all peripheral-control code.","这节课带你快闪（300ms 间隔）6 次，顺便理解 <code>delay()</code> 的代价：<b>delay 期间 CPU 啥也不干</b>——做项目时要用非阻塞定时器替代。":"This lesson blinks fast (300ms interval) six times, and shows the cost of <code>delay()</code>: <b>the CPU does nothing while delaying</b> — real projects need non-blocking timers.","DevKitC 板载 LED 所在引脚。高电平点亮，低电平熄灭。":"The pin driving the DevKitC onboard LED. HIGH lights it, LOW turns it off.","把引脚设为 HIGH(3.3V) 或 LOW(0V)。参数不带引号——它是宏不是字符串。":"Sets a pin to HIGH (3.3V) or LOW (0V). No quotes around the level — it is a macro, not a string.","delay() 是阻塞的":"delay() is blocking","delay(500) 的 500 毫秒里，CPU 完全停在这行，按钮扫描、Wi-Fi 收包全停。正式项目改用 millis() 计时。":"During delay(500), the CPU is stuck on that line — button scans and Wi-Fi packets all pause. Use millis() timing in real projects.","限流电阻":"Current-limiting resistor","外接 LED 串 220Ω 左右， GPIO 驱动电流上限约 20~40mA，直接接会过流。":"Add about 220Ω in series with an external LED; a GPIO sources roughly 20–40mA max, so direct connection over-currents it.","GPIO2 设为输出，开始快闪":"GPIO2 set to output, starting fast blink","提示：把代码里两个 delay(300) 改成 delay(100)，重跑看看频率变化":"Tip: change both delay(300) to delay(100) and re-run to see the frequency change","串口通信：和板子对话":"Serial: talk to the board","UART · 输入输出":"UART · input/output","接线：还是那根 USB 线":"Wiring: the same USB cable","USB-C 数据线同时就是<b>串口线</b>——板载的 USB 转串口芯片把 ESP32 的 TX/RX 转成 USB 信号。所以插好线就能双向通信，不用接杜邦线。":"The USB-C cable is also the <b>serial line</b> — the onboard USB-serial chip converts ESP32 TX/RX to USB. Plug it in and you have two-way communication, no jumpers needed.","→ 串口芯片 → 电脑":"→ serial chip → PC","← 串口芯片 ← 电脑":"← serial chip ← PC","<code>Serial.begin(115200)</code> 打开 UART0，波特率必须和电脑端一致（Arduino IDE 右下角那个数字）。":"<code>Serial.begin(115200)</code> opens UART0; the baud rate must match the PC side (the number at the bottom-right of Arduino IDE).","<b>输出</b>：print / println / printf 三件套——println 会多输出一个换行，printf 能格式化。":"<b>Output</b>: print / println / printf — println adds a newline, printf formats strings.","<b>输入</b>：电脑发来的数据先进串口缓冲区，用 <code>Serial.available()</code> 判断有没有数据，<code>readStringUntil('\\\\n')</code> 读出来。这节课可以<b>真打字发给板子</b>——下面的串口输入框就是你的键盘。":"<b>Input</b>: PC data lands in the serial buffer; use <code>Serial.available()</code> to check and <code>readStringUntil('\\\\n')</code> to read. This lesson lets you <b>really type to the board</b> — the input box below is your keyboard.","TX/RX 交叉":"TX/RX cross-over","板子的 TX 发出去、RX 收回来，经 USB 转串口芯片与电脑双向通信。":"The board's TX sends out and RX receives, via the USB-serial chip for two-way communication with the PC.","available() 先判断":"Check available() first","直接 read 在缓冲区空时会阻塞或返回空字符串，养成先判断的习惯。":"A direct read on an empty buffer blocks or returns an empty string — get into the habit of checking first.","读到换行才返回。电脑端记得发的时候带换行（串口监视器的输入框回车自动带）。":"Returns only when a newline arrives. Remember to send a newline from the PC (pressing Enter in the serial monitor adds one).","printf 格式化":"printf formatting","%s 字符串、%d 整数、%.2f 两位小数。比 println 拼接字符串干净。":"%s string, %d integer, %.2f two decimals — cleaner than concatenating with println.","串口已就绪，在监视器里发点什么给我":"Serial ready — type something in the monitor","(试试在下面输入框打字发给板子)":"(try typing to the board in the box below)","按键输入：BOOT 键（GPIO0）":"Button input: BOOT (GPIO0)","输入 · 上拉电阻":"Input · pull-up resistor","交互":"Interactive","接线：不用接线，用板载 BOOT 键":"Wiring: none — use the onboard BOOT button","DevKitC 的 <b>BOOT 键</b>接在 <b>GPIO0</b> 上，另一端接地。不按时靠<b>内部上拉电阻</b>保持高电平（HIGH），按下接地变低（LOW）。虚拟板子上这颗键可以<b>直接点</b>。":"The DevKitC <b>BOOT button</b> is wired to <b>GPIO0</b> with the other side to ground. An <b>internal pull-up</b> holds it HIGH when released; pressing grounds it to LOW. On the virtual board you can <b>click it directly</b>.","BOOT 键 · 输入":"BOOT button · input","按键另一端":"other side of button","按键输入的本质：让 CPU <b>读</b>一个引脚的高低电平。<code>pinMode(0, INPUT_PULLUP)</code> 启用<b>内部上拉</b>，不用外接电阻。":"Button input means letting the CPU <b>read</b> a pin's level. <code>pinMode(0, INPUT_PULLUP)</code> enables the <b>internal pull-up</b>, no external resistor needed.","不按时读到 <b>HIGH</b>（3.3V），按下接地读到 <b>LOW</b>（0V）。代码里用 <code>digitalRead(0) == LOW</code> 判断「被按下」。":"Released reads <b>HIGH</b> (3.3V); pressed grounds it to <b>LOW</b> (0V). Code checks <code>digitalRead(0) == LOW</code> for 'pressed'.","这节课要<b>你亲自按键</b>：点运行后，去板子图上点 <b>BOOT 键</b>，每按一次串口就记一笔。真实硬件上你也能这么按。":"This lesson needs <b>you to press the button</b>: after Run, click the <b>BOOT button</b> on the board — each press is logged to serial. You can press real hardware the same way.","内部上拉约 45kΩ：不按时是 HIGH，按下接地才变 LOW。省掉一个外接电阻。":"Internal pull-up is about 45kΩ: HIGH when released, LOW only when grounded. Saves an external resistor.","按键按下 = LOW，所以判断写成 <code>== LOW</code> 而不是 HIGH——这叫低电平有效。":"Pressed = LOW, so the check is <code>== LOW</code> not HIGH — this is called active-low.","消抖":"Debounce","机械按键在闭合瞬间会抖动几毫秒，实际项目用 <code>delay(20)</code> 或状态机消抖，避免一次按被读成多次。":"Mechanical contacts bounce for a few milliseconds; real projects use <code>delay(20)</code> or a state machine so one press is not read multiple times.","BOOT 的双重身份":"BOOT's dual role","GPIO0 上电时为 LOW 会进下载模式；程序跑起来后它就是普通按键，两者不冲突。":"GPIO0 LOW at power-on enters download mode; once your sketch runs it is just a normal button — no conflict.","按键检测就绪，按下 BOOT 试试":"Button detection ready — press BOOT","提示：点板子图上的 BOOT 键（GPIO0）":"Tip: click the BOOT button (GPIO0) on the board","PWM 呼吸灯（渐变亮度）":"PWM breathing LED (smooth dimming)","PWM · LEDC 外设":"PWM · LEDC peripheral","接线：还是板载 LED，不用外接":"Wiring: onboard LED again, no externals","继续用 <b>GPIO2 板载 LED</b>。PWM（脉冲宽度调制）靠快速开关改变<b>平均亮度</b>——占空比越高看起来越亮。虚拟板子的 LED 会真实呈现渐变明暗。":"Still using the <b>GPIO2 onboard LED</b>. PWM (pulse-width modulation) changes <b>average brightness</b> by switching fast — higher duty looks brighter. The virtual LED shows real smooth dimming.","板载 LED · PWM 输出":"onboard LED · PWM output","板载，无需接线":"onboard, no wiring","<code>digitalWrite</code> 只有亮/灭两档。要做出<b>呼吸灯</b>的平滑明暗，得用 <b>PWM</b>：在 1 个周期里让引脚亮一段时间、灭一段时间。":"<code>digitalWrite</code> only has on/off. For a <b>breathing LED</b> with smooth fading you need <b>PWM</b>: within one period the pin is on for part of the time and off for the rest.","<b>占空比</b>（duty cycle）= 高电平时间 ÷ 周期。50% 看起来半亮，100% 全亮，0% 熄灭。眼睛有视觉暂留，所以看不到闪烁。":"<b>Duty cycle</b> = HIGH time ÷ period. 50% looks half bright, 100% full, 0% off. Persistence of vision hides the flicker.","ESP32 有专用 <b>LEDC 外设</b>（16 通道）；Arduino 里 <code>analogWrite(pin, duty)</code> 一句就能输出 PWM，duty 范围 0~255。":"The ESP32 has a dedicated <b>LEDC peripheral</b> (16 channels); in Arduino, <code>analogWrite(pin, duty)</code> outputs PWM in one line, duty 0–255.","GPIO2 输出 PWM，duty 0~255。ESP32 的 Arduino 核心默认 8 位分辨率。":"GPIO2 outputs PWM, duty 0–255. The ESP32 Arduino core defaults to 8-bit resolution.","ledcWrite 底层":"ledcWrite under the hood","要更高分辨率（12 位）或可调频率，用 ESP-IDF 的 <code>ledcSetup(channel, freq, resolution)</code> + <code>ledcAttachPin</code>。":"For higher resolution (12-bit) or adjustable frequency, use ESP-IDF's <code>ledcSetup(channel, freq, resolution)</code> + <code>ledcAttachPin</code>.","频率与闪烁":"Frequency and flicker","LED 调光常用 1~5kHz。频率太低（&lt;100Hz）肉眼会看到闪烁，做舵机则要固定 50Hz。":"LED dimming typically uses 1–5kHz. Too low (&lt;100Hz) and the eye sees flicker; servos need a fixed 50Hz.","Gamma 校正":"Gamma correction","人眼对亮度是对数感知，线性 duty 看起来不均匀。精细项目要做 gamma 映射，呼吸灯才顺滑。":"Human brightness perception is logarithmic, so linear duty looks uneven. Serious projects apply gamma mapping for a smooth breathe.","PWM 呼吸灯启动 · GPIO2":"PWM breathing LED started · GPIO2","渐亮 → 渐灭，占空比 0~255（虚拟板呈现平滑明暗）":"Fade in → fade out, duty 0–255 (the virtual board shows smooth dimming)","一个呼吸周期约 2 秒，代码里用 analogWrite 逐帧改占空比":"One breath cycle is about 2 seconds; the code changes duty frame by frame with analogWrite","Wi-Fi 状态：从扫描到联网":"Wi-Fi status: from scan to connected","Wi-Fi · 状态机":"Wi-Fi · state machine","接线：不用接线，Wi-Fi 在芯片里":"Wiring: none — Wi-Fi is inside the chip","Wi-Fi 和蓝牙都<b>内置在 ESP32 芯片</b>里，天线就是模组上那块 PCB 网格。这节课不外接任何元件，运行后看串口的联网过程日志，虚拟板子的<b>模组</b>会在连接成功时点亮高亮。":"Wi-Fi and Bluetooth are <b>built into the ESP32 chip</b>; the antenna is the PCB grid on the module. No external parts here — run it and watch the serial log of the connection process. The virtual board's <b>module</b> lights up on success.","模组供电":"module power","（内置）":"(built-in)","ESP32 的 Wi-Fi 有<b>三种身份</b>：STA（连路由器）、AP（自己开热点）、STA+AP。最常见的是 <b>STA 模式</b>——像手机一样连家里的路由器。":"ESP32 Wi-Fi has <b>three roles</b>: STA (join a router), AP (become a hotspot), and STA+AP. The most common is <b>STA mode</b> — join your home router like a phone.","联网是个<b>状态机</b>：初始化 → 扫描/指定 SSID → 关联 → 拿到 DHCP 的 IP → 可以通信。每一步都可能失败，所以要监听事件。":"Connecting is a <b>state machine</b>: init → scan/specify SSID → associate → get a DHCP IP → communicate. Every step can fail, so listen for events.","这节课模拟一次完整连接过程：<b>扫描 → 选中 → 握手 → 获取 IP</b>。真实代码里用 <code>WiFi.begin(ssid, pass)</code> + 轮询 <code>WiFi.status()</code>。":"This lesson simulates a full connection: <b>scan → select → handshake → get IP</b>. Real code uses <code>WiFi.begin(ssid, pass)</code> plus polling <code>WiFi.status()</code>.","设为站点模式。ESP32 还支持 WIFI_AP 和 WIFI_AP_STA。":"Sets station mode. ESP32 also supports WIFI_AP and WIFI_AP_STA.","返回 WL_CONNECTED / WL_DISCONNECTED 等状态。连不上时先看这个，别猜。":"Returns WL_CONNECTED / WL_DISCONNECTED etc. Check this first when connection fails — don't guess.","DHCP 自动拿 IP":"Automatic DHCP IP","连上路由器后自动分配 192.168.x.x。<code>WiFi.localIP()</code> 打印出来就能在局域网访问它。":"Once joined, the router assigns a 192.168.x.x address. Print it with <code>WiFi.localIP()</code> to reach the board on your LAN.","ESP32 只支持 2.4GHz，连不上 5GHz 网络是正常的。信号差先查频段和距离。":"ESP32 is 2.4GHz-only; failing to join a 5GHz network is expected. For weak signal, check the band and distance first.","WiFi.mode(WIFI_STA) · 设置站点模式":"WiFi.mode(WIFI_STA) · set station mode","扫描附近 AP...":"Scanning nearby APs...","  找到 Home-2.4G (-42dBm) · Coffee_5G(2.4G 关闭)":"  Found Home-2.4G (-42dBm) · Coffee_5G (2.4G disabled)","Connecting... 关联中":"Connecting... associating","握手完成 · DHCP 请求中":"Handshake done · requesting DHCP","提示：ESP32 只支持 2.4GHz，连不上 5GHz 是正常的":"Tip: ESP32 is 2.4GHz-only; failing to join 5GHz is expected","ESP32 虚拟实验室 · 浏览器里玩转第一块开发板":"ESP32 Virtual Lab · play with your first board in the browser","虚拟实验室":"Virtual Lab","脚本化仿真 · 非真编译":"Scripted simulation · not real compilation","课":"lessons","可点部件":"clickable parts","原创内容":"original content","DEVKITC-1 · 交互原理图":"DEVKITC-1 · interactive schematic","滚轮缩放 · 拖拽平移 · 点击部件看说明":"Scroll to zoom · drag to pan · click a part for details","PCB 天线":"PCB antenna","晶振 26MHz":"Crystal 26MHz","EN 复位":"EN reset","USB 串口芯片与模组直连 TX/RX":"USB-serial chip wired to module TX/RX","电源灯·常亮":"Power LED · always on","板载 LED·GPIO2":"Onboard LED · GPIO2","串口传输中":"Serial transmitting","缩放":"Zoom","· 双击复位":"· double-click to reset","概述":"Overview","接线":"Wiring","知识点":"Key points","▶ 运行":"▶ Run","停止":"Stop","串口监视器 · 115200 baud":"Serial monitor · 115200 baud","清空":"Clear","发送":"Send","👆 点一下板子图上的":"👆 Click the","（GPIO0），串口会记录你的按键":"(GPIO0) on the board — serial logs each press","发给板子：输入文字回车":"Type to the board, press Enter","--- 程序结束 ---":"--- program ended ---","运行中…":"Running…","✓ 播放结束":"✓ playback finished","开发板":"Board","板载部件":"Onboard part","BOOT 按下 #":"BOOT pressed #","BOOT 松开 · GPIO0 = HIGH（内部上拉）":"BOOT released · GPIO0 = HIGH (internal pull-up)","收到: ":"Received: ","I²C 传感器：两根线读温度":"I²C sensor: read temperature on two wires","I²C · 总线寻址":"I²C · bus addressing","外设":"Peripherals","接线：4 根线，两线走总线":"Wiring: 4 wires, two on the bus","以常见的 <b>BME280</b> 为例：<b>VCC→3V3、GND→GND、SDA→GPIO21、SCL→GPIO22</b>。I²C 靠这两根线挂多个设备，每个设备有唯一地址。<b>别接 5V</b>。":"Take a common <b>BME280</b>: <b>VCC→3V3, GND→GND, SDA→GPIO21, SCL→GPIO22</b>. I²C hangs several devices off two wires, each with a unique address. <b>Never connect 5V</b>.","→ 传感器 VCC":"→ sensor VCC","→ SDA（数据）":"→ SDA (data)","→ SCL（时钟）":"→ SCL (clock)","<b>I²C</b> 只用两根线：<b>SDA</b>（数据）和 <b>SCL</b>（时钟）。总线上每个设备有个 7 位地址，主机点名谁，谁才回应。":"<b>I²C</b> uses just two wires: <b>SDA</b> (data) and <b>SCL</b> (clock). Every device on the bus has a 7-bit address; the master calls one by name and only that one replies.","ESP32 的默认 I²C 引脚是 <b>SDA=GPIO21、SCL=GPIO22</b>（也可重映射）。<code>Wire.begin()</code> 初始化后就能扫描总线。":"The ESP32's default I²C pins are <b>SDA=GPIO21, SCL=GPIO22</b> (remappable). After <code>Wire.begin()</code> you can scan the bus.","这节课模拟扫描过程：找到 <code>0x76</code> 上的 BME280，读出温度与湿度。<b>地址冲突</b>是 I²C 最常见的坑。":"This lesson simulates a scan: find the BME280 at <code>0x76</code> and read temperature and humidity. <b>Address conflicts</b> are the classic I²C pitfall.","两线总线":"Two-wire bus","SDA 传数据、SCL 传时钟，所有设备共用。省引脚，但速率低于 SPI。":"SDA carries data, SCL the clock, shared by all devices. Saves pins but is slower than SPI.","7 位地址":"7-bit address","BME280 常见 0x76/0x77（看 SDO 引脚）。<code>Wire.scan()</code> 能列出总线上所有应答的设备。":"The BME280 is usually at 0x76/0x77 (check the SDO pin). <code>Wire.scan()</code> lists all devices that acknowledge.","上拉电阻":"Pull-up resistors","I²C 总线需要上拉（常 4.7kΩ）到 3.3V。很多模块已板载；长线或高速时要外加。":"The I²C bus needs pull-ups (typically 4.7kΩ) to 3.3V. Many modules include them; add your own for long wires or high speed.","电平匹配":"Level shifting","ESP32 是 3.3V 逻辑，接 5V 传感器必须电平转换，否则可能烧引脚。":"The ESP32 uses 3.3V logic; 5V sensors need level shifting or the pin may be damaged.","Wire.begin(SDA=21, SCL=22) · I²C 初始化":"Wire.begin(SDA=21, SCL=22) · I²C initialized","  found 0x76  ← BME280 温度/湿度传感器":"  found 0x76  ← BME280 temp/humidity sensor","读取: 26.4 °C · 58% RH":"Reading: 26.4 °C · 58% RH","提示：地址冲突是 I²C 最常见的坑，用 Wire.scan() 排查":"Tip: address conflicts are the classic I²C pitfall — use Wire.scan() to diagnose","ADC 电位器：读模拟电压":"ADC potentiometer: read an analog voltage","ADC · 12 位采样":"ADC · 12-bit sampling","接线：电位器分压进 ADC":"Wiring: potentiometer divider into ADC","<b>电位器两端</b>接 <b>3V3</b> 和 <b>GND</b>，<b>中间抽头</b>接 <b>GPIO34</b>（ADC1_CH0）。拧旋钮改变电压，串口就能看到数值变化。<b>GPIO34 只能输入</b>，没有输出。":"Potentiometer <b>ends</b> go to <b>3V3</b> and <b>GND</b>, the <b>wiper</b> to <b>GPIO34</b> (ADC1_CH0). Turning the knob changes the voltage and the serial values. <b>GPIO34 is input-only</b>, no output drive.","→ 电位器一端":"→ one end of potentiometer","→ 电位器另一端":"→ other end of potentiometer","← 中间抽头（ADC 输入）":"← wiper (ADC input)","现实世界的温度、光照、旋钮都是<b>连续模拟量</b>。ADC（模数转换器）把它们变成 CPU 能算的数字。":"Real-world temperature, light and knobs are <b>continuous analog quantities</b>. An ADC converts them into numbers the CPU can compute on.","ESP32 的 ADC 默认 <b>12 位</b>：0~3.3V 映射到 0~4095。<code>analogRead(34)</code> 返回这个整数。":"The ESP32 ADC defaults to <b>12 bits</b>: 0–3.3V maps to 0–4095. <code>analogRead(34)</code> returns that integer.","这节课虚拟拧动电位器：从 0 到 4095 再回来。注意 <b>GPIO34~39 属于 ADC1</b>，而 ADC2 在 Wi-Fi 开启时会被占用。":"This lesson virtually turns the potentiometer from 0 to 4095 and back. Note <b>GPIO34–39 belong to ADC1</b>, while ADC2 is taken over when Wi-Fi is active.","12 位分辨率":"12-bit resolution","4096 级，电压分辨率约 3.3V/4096 ≈ 0.8mV。ESP-IDF 可配衰减量程。":"4096 steps, voltage resolution about 3.3V/4096 ≈ 0.8mV. ESP-IDF lets you configure attenuation and range.","ADC1（GPIO32~39）随时可用；ADC2 在 Wi-Fi 工作时被占用，读会失败。":"ADC1 (GPIO32–39) is always available; ADC2 is occupied while Wi-Fi runs, so reads fail.","输入-only 引脚":"Input-only pins","GPIO34~39 没有输出驱动能力，只能做输入，别拿来点 LED。":"GPIO34–39 have no output drive — input only. Don't use them to light an LED.","参考电压":"Reference voltage","读数依赖内部参考电压，精度要求高时要校准或外接基准源。":"Readings depend on the internal reference; calibrate or use an external reference when accuracy matters.","ADC ready · GPIO34（12 位，0~4095）":"ADC ready · GPIO34 (12-bit, 0–4095)","raw=0     0.00V   ← 电位器拧到头":"raw=0     0.00V   ← potentiometer at one end","raw=2048  1.65V   ← 中间位置":"raw=2048  1.65V   ← middle position","raw=4095  3.30V   ← 另一端":"raw=4095  3.30V   ← other end","提示：ADC2 在 Wi-Fi 开启时会被占用，模拟输入优先用 ADC1":"Tip: ADC2 is taken when Wi-Fi is on — prefer ADC1 for analog inputs","外部中断：不再轮询按键":"External interrupt: stop polling the button","ISR · 边沿触发":"ISR · edge triggered","接线：按键接 GPIO4（带内部上拉）":"Wiring: button on GPIO4 (internal pull-up)","按键一端接 <b>GPIO4</b>、另一端接 <b>GND</b>，用 <code>INPUT_PULLUP</code> 省掉外接电阻。中断让 CPU <b>不用一直盯着</b>按键，事件来了才通知。":"Button one side to <b>GPIO4</b>, the other to <b>GND</b>; <code>INPUT_PULLUP</code> saves an external resistor. An interrupt means the CPU <b>doesn't keep watching</b> the button — it gets notified when something happens.","→ 按键（中断输入）":"→ button (interrupt input)","→ 按键另一端":"→ other side of button","轮询（polling）要 CPU 反复问「按了吗？」；<b>中断</b>是硬件在事件发生时<b>主动打断</b> CPU，转去执行一小段 ISR。":"Polling makes the CPU repeatedly ask 'pressed yet?'; an <b>interrupt</b> is hardware <b>actively breaking in</b> when an event occurs, running a short ISR.","ESP32 用 <code>attachInterrupt(digitalPinToInterrupt(4), isr, FALLING)</code> 绑定中断，<b>FALLING</b> 表示下降沿（按下瞬间）。":"The ESP32 binds an interrupt with <code>attachInterrupt(digitalPinToInterrupt(4), isr, FALLING)</code>; <b>FALLING</b> means the falling edge (the moment of press).","中断服务程序 <b>要极短</b>：只置标志位，复杂处理留给 loop()。这节课模拟三次按键，看 ISR 如何即时响应。":"The ISR <b>must be tiny</b>: just set a flag, leave heavy work to loop(). This lesson simulates three presses to show the ISR responding instantly.","把引脚、回调函数、触发方式绑在一起。触发方式还有 RISING / CHANGE。":"Binds a pin, callback and trigger together. Other triggers: RISING / CHANGE.","ISR 要短":"Keep the ISR short","中断里别 delay、别 Serial.print 大段内容——只设置一个 volatile 标志，主循环再处理。":"No delay or big Serial.print in an ISR — just set a volatile flag and handle it in the main loop.","volatile 关键字":"The volatile keyword","标志变量要加 volatile，防止编译器优化掉对它的读取。":"Mark the shared flag volatile so the compiler doesn't optimize away reads of it.","消抖仍需要":"Debounce is still needed","中断也躲不开机械抖动，软件消抖或 RC 滤波依然要。":"Interrupts don't escape mechanical bounce; software debounce or RC filtering is still required.","外部中断已绑定 GPIO4 · FALLING 边沿":"External interrupt bound to GPIO4 · FALLING edge","ISR 触发！presses=1 · CPU 被硬件打断":"ISR fired! presses=1 · CPU interrupted by hardware","ISR 触发！presses=2":"ISR fired! presses=2","ISR 触发！presses=3":"ISR fired! presses=3","提示：ISR 里只置标志，复杂逻辑留给 loop()":"Tip: set only a flag in the ISR; leave complex logic to loop()","深度睡眠：电池供电的关键":"Deep sleep: the key to battery power","Deep Sleep · 低功耗":"Deep sleep · low power","电源":"Power","接线：用 BOOT 键当唤醒源":"Wiring: use the BOOT button as wake source","不用外接元件。<b>Deep Sleep</b> 时大部分电路断电，只留 RTC 和一个唤醒源。这节课用 <b>BOOT 键（GPIO0）</b>作为 <code>ext0</code> 唤醒源——按一下板子上的键就醒。":"No external parts. In <b>deep sleep</b> most circuitry is powered down, leaving only the RTC and one wake source. This lesson uses the <b>BOOT button (GPIO0)</b> as an <code>ext0</code> wake source — press the button on the board to wake.","BOOT 键 · 唤醒源":"BOOT button · wake source","跑着 Wi-Fi 的 ESP32 电流约 <b>100~200mA</b>；<b>Deep Sleep</b> 只留 RTC，电流降到<b>约 10µA</b>——电池供电项目全靠它。":"An ESP32 with Wi-Fi active draws about <b>100–200mA</b>; <b>deep sleep</b> keeps only the RTC and drops to <b>about 10µA</b> — battery projects live on this.","<code>esp_deep_sleep_start()</code> 让芯片睡下，RAM 内容丢失（RTC 内存除外）。唤醒后程序<b>从头执行</b>，像重新上电。":"<code>esp_deep_sleep_start()</code> puts the chip to sleep; RAM contents are lost (except RTC memory). After wake the sketch <b>runs from the top</b>, like a fresh power-on.","这节课模拟：运行 → 进入睡眠 → 串口静默 → 按键唤醒 → 从头跑。<b>唤醒源</b>是设计低功耗系统的第一步。":"This lesson simulates: run → sleep → silent serial → button wake → restart. Choosing a <b>wake source</b> is the first step in low-power design.","只给 RTC 供电，CPU/Wi-Fi 全关。比 Modem Sleep（约 20mA 量级）省几个数量级。":"Only the RTC is powered; CPU and Wi-Fi are off. Orders of magnitude below Modem Sleep (~20mA class).","唤醒源":"Wake source","定时器（esp_sleep_enable_timer_wakeup）、外部引脚（ext0/ext1）、触摸引脚都可唤醒。":"Timers (esp_sleep_enable_timer_wakeup), external pins (ext0/ext1) and touch pins can all wake the chip.","RTC 内存":"RTC memory","普通 RAM 掉电丢失；<code>RTC_DATA_ATTR</code> 变量能在睡眠中保留状态。":"Normal RAM is lost on sleep; <code>RTC_DATA_ATTR</code> variables survive across sleep.","唤醒即复位":"Wake means reset","唤醒后 setup() 重新跑，靠唤醒原因区分是上电还是睡醒。":"After wake, setup() runs again; check the wake cause to tell power-on from sleep-wake.","Wake up, cause=1  ← 上次按键唤醒":"Wake up, cause=1  ← previous button wake","（串口静默 · 电流降至约 10µA）":"(serial silent · current down to about 10µA)","BOOT 按下 → ext0 唤醒事件触发！":"BOOT pressed → ext0 wake event fired!","Wake up, cause=1 · 程序从头执行":"Wake up, cause=1 · sketch restarts from the top","提示：Deep Sleep 唤醒后 RAM 丢失，用 RTC_DATA_ATTR 保留状态":"Tip: RAM is lost after deep sleep — use RTC_DATA_ATTR to keep state"}}
+let LANG = localStorage.getItem("lab-lang") || "zh";
+function tr(v){
+  if (typeof v !== "string") return v;
+  return (LANG === "en" && window.I18N.t[v]) ? window.I18N.t[v] : v;
+}
+function applyStatic(){
+  document.documentElement.lang = LANG === "en" ? "en" : "zh-CN";
+  const b = document.querySelector("#langBtn");
+  if (b) b.textContent = LANG === "en" ? "中文" : "EN";
+  document.querySelectorAll("[data-i18n]").forEach(el => {
+    const k = el.dataset.i18n;
+    if (!el.dataset.i18nSrc) el.dataset.i18nSrc = el.textContent;
+    el.textContent = LANG === "en" ? (window.I18N.t[k] || tr(k)) : el.dataset.i18nSrc;
+  });
+  document.querySelectorAll("[data-i18n-ph]").forEach(el => {
+    const k = el.dataset.i18nPh;
+    el.placeholder = LANG === "en" ? (window.I18N.t[k] || k) : k;
+  });
+}
+function setLang(v){
+  LANG = v; localStorage.setItem("lab-lang", v);
+  renderList(); renderLesson(); applyStatic();
+}
 /* ================= 部件说明 ================= */
 const PARTS = {
   pcb:{t:"ESP32 DevKitC-1 开发板",d:"把<b>芯片、USB 转串口、稳压、排针</b>都做好的成品板。插上 USB-C 数据线就能开发，不用自己搭最小系统。丝印标了每个引脚的功能。"},
@@ -525,6 +559,95 @@ const LESSONS = [
        {t:3300,serial:"Connected! IP = 192.168.1.42",part:"module",state:"on"},
        {t:3900,serial:"提示：ESP32 只支持 2.4GHz，连不上 5GHz 是正常的"} ],
   input:false
+},
+{
+  id:7, no:"07", title:"I²C 传感器：两根线读温度", meta:"I²C · 总线寻址", group:"外设",
+  wiringHd:"接线：4 根线，两线走总线",
+  wiring:"以常见的 <b>BME280</b> 为例：<b>VCC→3V3、GND→GND、SDA→GPIO21、SCL→GPIO22</b>。I²C 靠这两根线挂多个设备，每个设备有唯一地址。<b>别接 5V</b>。",
+  pins:[["3V3","→ 传感器 VCC"],["GND","→ GND"],["GPIO21","→ SDA（数据）"],["GPIO22","→ SCL（时钟）"]],
+  overview:[
+    [0,"<b>I²C</b> 只用两根线：<b>SDA</b>（数据）和 <b>SCL</b>（时钟）。总线上每个设备有个 7 位地址，主机点名谁，谁才回应。"],
+    [1,"ESP32 的默认 I²C 引脚是 <b>SDA=GPIO21、SCL=GPIO22</b>（也可重映射）。<code>Wire.begin()</code> 初始化后就能扫描总线。"],
+    [2,"这节课模拟扫描过程：找到 <code>0x76</code> 上的 BME280，读出温度与湿度。<b>地址冲突</b>是 I²C 最常见的坑。"]],
+  points:[
+    ["两线总线","SDA 传数据、SCL 传时钟，所有设备共用。省引脚，但速率低于 SPI。"],
+    ["7 位地址","BME280 常见 0x76/0x77（看 SDO 引脚）。<code>Wire.scan()</code> 能列出总线上所有应答的设备。"],
+    ["上拉电阻","I²C 总线需要上拉（常 4.7kΩ）到 3.3V。很多模块已板载；长线或高速时要外加。"],
+    ["电平匹配","ESP32 是 3.3V 逻辑，接 5V 传感器必须电平转换，否则可能烧引脚。"]],
+  code:'<span class="c">// 第 7 课：I²C 扫描 + 读 BME280</span>\n<span class="c">#include &lt;Wire.h&gt;</span>\n\n<span class="k">void</span> <span class="f">setup</span>() {\n  Serial.<span class="f">begin</span>(<span class="n">115200</span>);\n  Wire.<span class="f">begin</span>(<span class="n">21</span>, <span class="n">22</span>);  <span class="c">// SDA, SCL</span>\n  Serial.<span class="f">println</span>(<span class="s">"Scanning I2C..."</span>);\n  <span class="k">for</span> (<span class="k">byte</span> a = <span class="n">1</span>; a &lt; <span class="n">127</span>; a++) {\n    Wire.<span class="f">beginTransmission</span>(a);\n    <span class="k">if</span> (Wire.<span class="f">endTransmission</span>() == <span class="n">0</span>)\n      Serial.<span class="f">printf</span>(<span class="s">"found 0x%02X\\n"</span>, a);\n  }\n}\n\n<span class="k">void</span> <span class="f">loop</span>() {}',
+  tl:[ {t:250,serial:"Wire.begin(SDA=21, SCL=22) · I²C 初始化"},
+       {t:650,serial:"Scanning I2C..."},
+       {t:1400,serial:"  found 0x76  ← BME280 温度/湿度传感器"},
+       {t:2000,serial:"读取: 26.4 °C · 58% RH"},
+       {t:2600,serial:"提示：地址冲突是 I²C 最常见的坑，用 Wire.scan() 排查"} ],
+  input:false
+},
+{
+  id:8, no:"08", title:"ADC 电位器：读模拟电压", meta:"ADC · 12 位采样", group:"外设",
+  wiringHd:"接线：电位器分压进 ADC",
+  wiring:"<b>电位器两端</b>接 <b>3V3</b> 和 <b>GND</b>，<b>中间抽头</b>接 <b>GPIO34</b>（ADC1_CH0）。拧旋钮改变电压，串口就能看到数值变化。<b>GPIO34 只能输入</b>，没有输出。",
+  pins:[["3V3","→ 电位器一端"],["GND","→ 电位器另一端"],["GPIO34","← 中间抽头（ADC 输入）"]],
+  overview:[
+    [0,"现实世界的温度、光照、旋钮都是<b>连续模拟量</b>。ADC（模数转换器）把它们变成 CPU 能算的数字。"],
+    [1,"ESP32 的 ADC 默认 <b>12 位</b>：0~3.3V 映射到 0~4095。<code>analogRead(34)</code> 返回这个整数。"],
+    [2,"这节课虚拟拧动电位器：从 0 到 4095 再回来。注意 <b>GPIO34~39 属于 ADC1</b>，而 ADC2 在 Wi-Fi 开启时会被占用。"]],
+  points:[
+    ["12 位分辨率","4096 级，电压分辨率约 3.3V/4096 ≈ 0.8mV。ESP-IDF 可配衰减量程。"],
+    ["ADC1 vs ADC2","ADC1（GPIO32~39）随时可用；ADC2 在 Wi-Fi 工作时被占用，读会失败。"],
+    ["输入-only 引脚","GPIO34~39 没有输出驱动能力，只能做输入，别拿来点 LED。"],
+    ["参考电压","读数依赖内部参考电压，精度要求高时要校准或外接基准源。"]],
+  code:'<span class="c">// 第 8 课：读 ADC（电位器）</span>\n<span class="k">const int</span> POT = <span class="n">34</span>;  <span class="c">// ADC1_CH0，只能输入</span>\n\n<span class="k">void</span> <span class="f">setup</span>() {\n  Serial.<span class="f">begin</span>(<span class="n">115200</span>);\n  Serial.<span class="f">println</span>(<span class="s">"ADC ready · GPIO34"</span>);\n}\n\n<span class="k">void</span> <span class="f">loop</span>() {\n  <span class="k">int</span> raw = <span class="f">analogRead</span>(POT);       <span class="c">// 0~4095</span>\n  <span class="k">float</span> v = raw * <span class="n">3.3</span> / <span class="n">4095</span>;   <span class="c">// 换算成电压</span>\n  Serial.<span class="f">printf</span>(<span class="s">"raw=%d  %.2fV\\n"</span>, raw, v);\n  <span class="f">delay</span>(<span class="n">300</span>);\n}',
+  tl:[ {t:250,serial:"ADC ready · GPIO34（12 位，0~4095）"},
+       {t:700,serial:"raw=0     0.00V   ← 电位器拧到头"},
+       {t:1400,serial:"raw=2048  1.65V   ← 中间位置"},
+       {t:2100,serial:"raw=4095  3.30V   ← 另一端"},
+       {t:2700,serial:"提示：ADC2 在 Wi-Fi 开启时会被占用，模拟输入优先用 ADC1"} ],
+  input:false
+},
+{
+  id:9, no:"09", title:"外部中断：不再轮询按键", meta:"ISR · 边沿触发", group:"外设",
+  wiringHd:"接线：按键接 GPIO4（带内部上拉）",
+  wiring:"按键一端接 <b>GPIO4</b>、另一端接 <b>GND</b>，用 <code>INPUT_PULLUP</code> 省掉外接电阻。中断让 CPU <b>不用一直盯着</b>按键，事件来了才通知。",
+  pins:[["GPIO4","→ 按键（中断输入）"],["GND","→ 按键另一端"]],
+  overview:[
+    [0,"轮询（polling）要 CPU 反复问「按了吗？」；<b>中断</b>是硬件在事件发生时<b>主动打断</b> CPU，转去执行一小段 ISR。"],
+    [1,"ESP32 用 <code>attachInterrupt(digitalPinToInterrupt(4), isr, FALLING)</code> 绑定中断，<b>FALLING</b> 表示下降沿（按下瞬间）。"],
+    [2,"中断服务程序 <b>要极短</b>：只置标志位，复杂处理留给 loop()。这节课模拟三次按键，看 ISR 如何即时响应。"]],
+  points:[
+    ["attachInterrupt()","把引脚、回调函数、触发方式绑在一起。触发方式还有 RISING / CHANGE。"],
+    ["ISR 要短","中断里别 delay、别 Serial.print 大段内容——只设置一个 volatile 标志，主循环再处理。"],
+    ["volatile 关键字","标志变量要加 volatile，防止编译器优化掉对它的读取。"],
+    ["消抖仍需要","中断也躲不开机械抖动，软件消抖或 RC 滤波依然要。"]],
+  code:'<span class="c">// 第 9 课：外部中断计按键次数</span>\n<span class="k">const int</span> BTN = <span class="n">4</span>;\n<span class="k">volatile int</span> presses = <span class="n">0</span>;  <span class="c">// ISR 与主循环共享，必须 volatile</span>\n\n<span class="k">void</span> <span class="f">isr</span>() { presses++; }  <span class="c">// 越短越好，只加计数</span>\n\n<span class="k">void</span> <span class="f">setup</span>() {\n  Serial.<span class="f">begin</span>(<span class="n">115200</span>);\n  <span class="f">pinMode</span>(BTN, INPUT_PULLUP);\n  <span class="f">attachInterrupt</span>(<span class="f">digitalPinToInterrupt</span>(BTN), isr, FALLING);\n}\n\n<span class="k">void</span> <span class="f">loop</span>() {\n  Serial.<span class="f">printf</span>(<span class="s">"presses=%d\\n"</span>, presses);\n  <span class="f">delay</span>(<span class="n">1000</span>);\n}',
+  tl:[ {t:250,serial:"外部中断已绑定 GPIO4 · FALLING 边沿"},
+       {t:750,serial:"ISR 触发！presses=1 · CPU 被硬件打断"},
+       {t:1500,serial:"ISR 触发！presses=2"},
+       {t:2300,serial:"ISR 触发！presses=3"},
+       {t:3000,serial:"提示：ISR 里只置标志，复杂逻辑留给 loop()"} ],
+  input:false
+},
+{
+  id:10, no:"10", title:"深度睡眠：电池供电的关键", meta:"Deep Sleep · 低功耗", group:"电源",
+  wiringHd:"接线：用 BOOT 键当唤醒源",
+  wiring:"不用外接元件。<b>Deep Sleep</b> 时大部分电路断电，只留 RTC 和一个唤醒源。这节课用 <b>BOOT 键（GPIO0）</b>作为 <code>ext0</code> 唤醒源——按一下板子上的键就醒。",
+  pins:[["GPIO0","BOOT 键 · 唤醒源"],["3V3","供电"]],
+  overview:[
+    [0,"跑着 Wi-Fi 的 ESP32 电流约 <b>100~200mA</b>；<b>Deep Sleep</b> 只留 RTC，电流降到<b>约 10µA</b>——电池供电项目全靠它。"],
+    [1,"<code>esp_deep_sleep_start()</code> 让芯片睡下，RAM 内容丢失（RTC 内存除外）。唤醒后程序<b>从头执行</b>，像重新上电。"],
+    [2,"这节课模拟：运行 → 进入睡眠 → 串口静默 → 按键唤醒 → 从头跑。<b>唤醒源</b>是设计低功耗系统的第一步。"]],
+  points:[
+    ["Deep Sleep ≈ 10µA","只给 RTC 供电，CPU/Wi-Fi 全关。比 Modem Sleep（约 20mA 量级）省几个数量级。"],
+    ["唤醒源","定时器（esp_sleep_enable_timer_wakeup）、外部引脚（ext0/ext1）、触摸引脚都可唤醒。"],
+    ["RTC 内存","普通 RAM 掉电丢失；<code>RTC_DATA_ATTR</code> 变量能在睡眠中保留状态。"],
+    ["唤醒即复位","唤醒后 setup() 重新跑，靠唤醒原因区分是上电还是睡醒。"]],
+  code:'<span class="c">// 第 10 课：Deep Sleep + 按键唤醒</span>\n<span class="c">#include &lt;esp_sleep.h&gt;</span>\n\n<span class="k">void</span> <span class="f">setup</span>() {\n  Serial.<span class="f">begin</span>(<span class="n">115200</span>);\n  <span class="k">int</span> why = <span class="f">esp_sleep_get_wakeup_cause</span>();\n  Serial.<span class="f">printf</span>(<span class="s">"Wake up, cause=%d\\n"</span>, why);\n\n  <span class="c">// BOOT（GPIO0）作为外部唤醒源，低电平触发</span>\n  <span class="f">esp_sleep_enable_ext0_wakeup</span>(GPIO_NUM_0, <span class="n">0</span>);\n  Serial.<span class="f">println</span>(<span class="s">"Going to deep sleep... press BOOT to wake"</span>);\n  <span class="f">delay</span>(<span class="n">100</span>);\n  <span class="f">esp_deep_sleep_start</span>();  <span class="c">// 从这里开始睡，唤醒后从 setup 重跑</span>\n}\n\n<span class="k">void</span> <span class="f">loop</span>() {}',
+  tl:[ {t:250,serial:"Wake up, cause=1  ← 上次按键唤醒"},
+       {t:700,serial:"Going to deep sleep... press BOOT to wake"},
+       {t:1200,serial:"（串口静默 · 电流降至约 10µA）"},
+       {t:2200,serial:"BOOT 按下 → ext0 唤醒事件触发！"},
+       {t:2800,serial:"Wake up, cause=1 · 程序从头执行"},
+       {t:3300,serial:"提示：Deep Sleep 唤醒后 RAM 丢失，用 RTC_DATA_ATTR 保留状态"} ],
+  input:false
 }
 ];
 
@@ -555,7 +678,7 @@ function chipPing(){
 function serialLn(text, cls){
   const d = document.createElement("div");
   d.className = "ln" + (cls ? " " + cls : "");
-  const el = (text === null) ? "--- 程序结束 ---" : text;
+  const el = (text === null) ? tr("--- 程序结束 ---") : tr(text);
   if (cls === "noise"){ d.textContent = el; d.classList.add("noise"); }
   else if (cls === "end"){ d.textContent = el; d.classList.add("end"); }
   else {
@@ -575,7 +698,7 @@ function stop(auto){
   }
   running = false;
   $("#btnRun").disabled = false;
-  $("#btnRun").textContent = "▶ 运行";
+  $("#btnRun").textContent = tr("▶ 运行");
   $("#serDot").classList.remove("live");
   $("#prog").style.width = "0%";
   $("#runState").textContent = "";
@@ -592,11 +715,11 @@ function run(){
   serialLn(BOOT_NOISE, "noise");
   running = true;
   $("#btnRun").disabled = true;
-  $("#btnRun").textContent = "运行中…";
+  $("#btnRun").textContent = tr("运行中…");
   $("#serDot").classList.add("live");
   $("#runState").textContent = "";
   tl.forEach(e => timers.push(setTimeout(() => fire(e), e.t + 500)));
-  timers.push(setTimeout(() => { serialLn(null, "end"); stop(true); $("#runState").textContent = "✓ 播放结束"; }, lastT + 900));
+  timers.push(setTimeout(() => { serialLn(null, "end"); stop(true); $("#runState").textContent = tr("✓ 播放结束"); }, lastT + 900));
   (function prog(){
     if (!running) return;
     const p = Math.min(100, ((Date.now() - t0) / (lastT + 500)) * 100);
@@ -644,17 +767,17 @@ function renderBody(tab){
   const L = LESSONS[cur];
   let h = "";
   if (tab === "overview"){
-    h += '<h3>' + L.no + " · " + L.title + '</h3>';
-    L.overview.forEach(p => { h += '<p>' + p[1].replace(/`([^`]+)`/g, '<code>$1</code>') + '</p>'; });
-    h += '<div class="callout"><b>怎么看效果：</b>点左下「▶ 运行」，盯住板子图上的<b>蓝色 LED</b> 和下方<b>串口监视器</b>——时间轴驱动的仿真播放，不是真编译。</div>';
+    h += '<h3>' + L.no + " · " + tr(L.title) + '</h3>';
+    L.overview.forEach(p => { h += '<p>' + tr(p[1]).replace(/`([^`]+)`/g, '<code>$1</code>') + '</p>'; });
+    h += '<div class="callout"><b>'+tr('怎么看效果：')+'</b>'+tr('点左下「▶ 运行」，盯住板子图上的')+'<b>'+tr('蓝色 LED')+'</b>'+tr('和下方')+'<b>'+tr('串口监视器 · 115200 baud')+'</b>'+tr('——时间轴驱动的仿真播放，不是真编译。')+'</div>';
   } else if (tab === "wiring"){
-    h += '<div class="wire"><div class="wh">' + L.wiringHd + '</div><p>' + L.wiring + '</p>';
-    if (L.pins){ h += '<div class="pinrow">'; L.pins.forEach(p => { h += '<span class="pin' + (p[0].indexOf("GPIO") >= 0 ? " hot" : "") + '">' + p[0] + " · " + p[1] + "</span>"; }); h += "</div>"; }
+    h += '<div class="wire"><div class="wh">' + tr(L.wiringHd) + '</div><p>' + tr(L.wiring) + '</p>';
+    if (L.pins){ h += '<div class="pinrow">'; L.pins.forEach(p => { h += '<span class="pin' + (p[0].indexOf("GPIO") >= 0 ? " hot" : "") + '">' + p[0] + " · " + tr(p[1]) + "</span>"; }); h += "</div>"; }
     h += "</div>";
     h += '<div class="callout"><b>仿真说明：</b>虚拟板子按接线状态自动呈现，你不需要真的插线。外接 LED 的课在现实里记得串 <b>220Ω</b> 电阻。</div>';
   } else {
     h += '<h3>这课的四个要点</h3><ul>';
-    L.points.forEach(p => { h += "<li><b>" + p[0] + "</b><br>" + p[1] + "</li>"; });
+    L.points.forEach(p => { h += "<li><b>" + tr(p[0]) + "</b><br>" + tr(p[1]) + "</li>"; });
     h += "</ul>";
   }
   body.innerHTML = h;
@@ -665,8 +788,8 @@ function renderList(){
   const box = $("#lsnList");
   let last = null, h = "";
   LESSONS.forEach((L, i) => {
-    if (L.group !== last){ h += '<div class="grp">' + L.group + '</div>'; last = L.group; }
-    h += '<button class="lsn' + (i === cur ? " on" : "") + '" data-i="' + i + '"><span class="no">' + L.no + '</span><span class="tt">' + L.title + '</span><span class="meta">' + L.meta + "</span></button>";
+    if (L.group !== last){ h += '<div class="grp">' + tr(L.group) + '</div>'; last = L.group; }
+    h += '<button class="lsn' + (i === cur ? " on" : "") + '" data-i="' + i + '"><span class="no">' + L.no + '</span><span class="tt">' + tr(L.title) + '</span><span class="meta">' + tr(L.meta) + "</span></button>";
   });
   box.innerHTML = h;
   box.querySelectorAll(".lsn").forEach(b => b.onclick = () => { cur = +b.dataset.i; renderList(); renderLesson(); });
@@ -676,9 +799,9 @@ function renderList(){
 const pop = $("#pop");
 function showPop(el, part){
   const info = PARTS[part]; if (!info) return;
-  $("#popK").textContent = part === "pcb" ? "开发板" : "板载部件";
-  $("#popT").textContent = info.t;
-  $("#popD").innerHTML = info.d;
+  $("#popK").textContent = tr(part === "pcb" ? "开发板" : "板载部件");
+  $("#popT").textContent = tr(info.t);
+  $("#popD").innerHTML = tr(info.d);
   document.querySelectorAll(".part.sel").forEach(x => x.classList.remove("sel"));
   el.classList.add("sel");
   const r = el.getBoundingClientRect(), box = $("#svgBox").getBoundingClientRect();
@@ -739,7 +862,7 @@ function sendSerial(){
   const v = $("#serInput").value.trim();
   if (!v || !running) return;
   serialLn("> " + v, "tx"); chipPing();
-  setTimeout(() => { serialLn("收到: " + v, "rx"); chipPing(); }, 220);
+  setTimeout(() => { serialLn(tr("收到: ") + v, "rx"); chipPing(); }, 220);
   $("#serInput").value = "";
 }
 $("#serSend").onclick = sendSerial;
@@ -753,6 +876,8 @@ document.querySelectorAll(".tab").forEach(t => t.onclick = () => { document.quer
 
 renderList();
 renderLesson();
+applyStatic();
+$("#langBtn").addEventListener("click", () => setLang(LANG === "zh" ? "en" : "zh"));
 window.addEventListener("error", e => { document.body.setAttribute("data-err", e.message); });
 /* 自检模式：URL 带 ?audit 时运行，结果写进 title（供 headless 核对，正式版零影响） */
 if (location.search.indexOf("audit") >= 0){
@@ -886,6 +1011,29 @@ if (new URLSearchParams(location.search).has("e2e")){
         R.scanFound = Array.prototype.some.call(serial.children, el => el.textContent.indexOf("扫描附近 AP") >= 0);
         R.ipFound = Array.prototype.some.call(serial.children, el => el.textContent.indexOf("192.168.1.42") >= 0);
         R.moduleOn = document.querySelector('.part[data-part="module"]').classList.contains("on");
+      } else if (mode === "i18n"){
+        /* i18n：默认中文 → 切英文 → 切回，验证静态/动态文本 */
+        R.zhTitle = document.querySelector('.lsn .tt').textContent;
+        R.zhBtn = document.querySelector("#langBtn").textContent;
+        setLang("en"); await sleep(120);
+        R.enTitle = document.querySelector('.lsn .tt').textContent;
+        R.enBtn = document.querySelector("#langBtn").textContent;
+        R.enTab = document.querySelector('[data-tab="overview"]').textContent;
+        R.enHead = document.querySelector(".hstat span").textContent;
+        setLang("zh"); await sleep(120);
+        R.backTitle = document.querySelector('.lsn .tt').textContent;
+        R.backTab = document.querySelector('[data-tab="overview"]').textContent;
+        R.saved = localStorage.getItem("lab-lang");
+      } else if (mode === "m3"){
+        /* M3：10 课全渲染 + 新课英文翻译 + 页脚署名 */
+        R.count = document.querySelectorAll("#lsnList .lsn").length;
+        R.foot = !!document.querySelector("#labFoot a[href*='esp-labs']");
+        R.zh7 = document.querySelectorAll(".lsn .tt")[6].textContent;
+        setLang("en"); await sleep(100);
+        R.en7 = document.querySelectorAll(".lsn .tt")[6].textContent;
+        R.en10 = document.querySelectorAll(".lsn .tt")[9].textContent;
+        R.footEn = document.querySelector("#labFoot").textContent.indexOf("MIT") >= 0;
+        setLang("zh"); await sleep(100);
       } else if (mode === "l1"){
         cur = 0; renderList(); renderLesson();
         R.fn = document.querySelector("#codeFn").textContent;

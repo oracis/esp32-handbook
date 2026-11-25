@@ -52,6 +52,18 @@ CASES = {
     "e2e=wifi": dict(budget=9000, w=1440, h=900, expect=lambda R: (
         R["fn"] == "lesson_6.ino", R["scanFound"] is True,
         R["ipFound"] is True, R["moduleOn"] is True, "err" not in R)),
+    "e2e=m3":   dict(budget=5000, w=1440, h=900, expect=lambda R: (
+        R["count"] == 10, R["foot"] is True,
+        R["zh7"] == "I²C 传感器：两根线读温度",
+        R["en7"] == "I²C sensor: read temperature on two wires",
+        R["en10"] == "Deep sleep: the key to battery power",
+        R["footEn"] is True, "err" not in R)),
+    "e2e=i18n": dict(budget=4000, w=1440, h=900, expect=lambda R: (
+        R["zhTitle"] == "认识开发板", R["zhBtn"] == "EN",
+        R["enTitle"] == "Meet the dev board", R["enBtn"] == "中文",
+        R["enTab"] == "Overview", R["enHead"] == "10 lessons",
+        R["backTitle"] == "认识开发板", R["backTab"] == "概述",
+        R["saved"] == "zh", "err" not in R)),
     "e2e=cm":   dict(budget=4000, w=1440, h=900, expect=lambda R: (
         R["cmHidden"] is True, R["cmCodeKept"] is True,
         R["cmNoRequest"] is True, "err" not in R)),
