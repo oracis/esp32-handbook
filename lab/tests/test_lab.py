@@ -42,12 +42,9 @@ CASES = {
         R["wire"] is True, R["pins"] == 3, R["points"] == 4, "err" not in R)),
     "e2e=zoom": dict(budget=4000, w=1440, h=900, expect=lambda R: (
         R["zoom"] != "100%", "scale(" in R["tf"], R["reset"] == "100%", "err" not in R)),
-    "e2e=cm":   dict(budget=6000, w=1440, h=900, expect=lambda R: (
-        R["cmOpen"] is True, R["giscusScript"] is True,
-        "收起" in R["toggleText"], R["note"] is True,
-        R["loadingHid"] is True,
-        (R["ready"] is True or R["fallback"] is True),
-        "err" not in R)),
+    "e2e=cm":   dict(budget=4000, w=1440, h=900, expect=lambda R: (
+        R["cmHidden"] is True, R["cmCodeKept"] is True,
+        R["cmNoRequest"] is True, "err" not in R)),
 }
 
 _cache = {}

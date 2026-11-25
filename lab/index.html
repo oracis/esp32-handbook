@@ -139,6 +139,7 @@ aside{border-right:1px solid var(--line);background:var(--panel2);overflow-y:aut
 
 /* ---------- 留言区 ---------- */
 #comments{border-top:1px solid var(--line);background:var(--panel2);padding:0 18px 28px}
+#comments[hidden]{display:none!important}/* 留言功能暂下线：删掉 section 的 hidden 即可恢复 */
 #cmBox{max-width:820px;margin:0 auto}
 #cmToggle{display:block;margin:0 auto 4px;background:var(--panel);border:1px solid var(--line);border-radius:99px;color:var(--text2);font-size:12.8px;padding:11px 24px;transition:.15s;position:relative;top:-22px}
 #cmToggle:hover{border-color:var(--teal);color:var(--teal)}
@@ -351,8 +352,9 @@ aside{border-right:1px solid var(--line);background:var(--panel2);overflow-y:aut
   </section>
 </main>
 
-<!-- 留言区（Giscus · GitHub Discussions · 懒加载） -->
-<section id="comments">
+<!-- 留言区：因 giscus.app 大陆网络不稳定（加载超时/空白），按用户要求暂时隐藏。
+     恢复方法：删除下方 <section id="comments" hidden> 里的 hidden 属性即可，全部代码保留。 -->
+<section id="comments" hidden>
   <div id="cmBox">
     <button id="cmToggle">💬 留言 / 反馈 · 点击展开</button>
     <div id="cmInner" class="hid">
@@ -771,17 +773,12 @@ if (new URLSearchParams(location.search).has("e2e")){
         await sleep(60);
         R.points = document.querySelectorAll("#body li").length;
       } else if (mode === "cm"){
-        document.querySelector("#cmToggle").click();
-        await sleep(2600);
-        R.cmOpen = !document.querySelector("#cmInner").classList.contains("hid");
-        R.giscusScript = !!document.querySelector('#cmInner script[src*="giscus"]');
-        R.toggleText = document.querySelector("#cmToggle").textContent;
-        R.note = !!document.querySelector("#cmNote");
-        R.ready = !!document.querySelector("#cmInner").dataset.ready;
-        R.fallback = !document.querySelector("#cmFallback").classList.contains("hid");
-        R.loadingHid = document.querySelector("#cmLoading").classList.contains("hid");
-        const gf = document.querySelector("#cmInner iframe");
-        R.iframe = gf ? [Math.round(gf.getBoundingClientRect().width), Math.round(gf.getBoundingClientRect().height)] : null;
+        /* 留言功能已隐藏：验证 section hidden + 代码保留（可一行恢复） */
+        const sec = document.querySelector("#comments"), tg = document.querySelector("#cmToggle");
+        R.cmHidden = sec.hasAttribute("hidden") && getComputedStyle(sec).display === "none";
+        R.cmCodeKept = !!tg && !!document.querySelector("#cmInner") &&
+                       !!document.querySelector("#cmFallback") && !!document.querySelector(".giscus");
+        R.cmNoRequest = !document.querySelector('#cmInner script[src*="giscus"]');
       } else if (mode === "zoom"){
         document.querySelector("#board").dispatchEvent(new WheelEvent("wheel", {deltaY: -240, bubbles: true, cancelable: true}));
         await sleep(60);
