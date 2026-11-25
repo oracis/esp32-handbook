@@ -48,7 +48,14 @@ CASES = {
         R["popStayedHidden"] is True, R["count"] == 1, "err" not in R)),
     "e2e=pwm":  dict(budget=8000, w=1440, h=900, expect=lambda R: (
         R["fn"] == "lesson_5.ino", R["pwmClass"] is True,
-        0 <= R["lv1"] <= 1, 0 <= R["lv2"] <= 1, R["changed"] is True, "err" not in R)),
+        0 <= R["lv1"] <= 1, 0 <= R["lv2"] <= 1, R["changed"] is True,
+        R["pwm3dSeen"] == 1, "err" not in R)),
+    "e2e=3d":   dict(budget=7000, w=1440, h=900, expect=lambda R: (
+        R["canvas"] is True, R["no3d"] is False, R["svgHidden"] is True,
+        R["ready"] is True, R["webgl2"] is True, R["meshes"] >= 50, R["parts"] == 12,
+        R["ledMax"] >= 2, R["pop3d"] == "USB 转串口芯片", R["pop3dShow"] is True,
+        abs(R["yaw1"] - R["yaw0"]) > 0.3, R["distance1"] < R["distance0"],
+        R["zoomLv"] != "100%", "err" not in R)),
     "e2e=wifi": dict(budget=9000, w=1440, h=900, expect=lambda R: (
         R["fn"] == "lesson_6.ino", R["scanFound"] is True,
         R["ipFound"] is True, R["moduleOn"] is True, "err" not in R)),

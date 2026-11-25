@@ -1,3 +1,5 @@
 .workbuddy/
 *.bak
 *.backup
+lab/tools/node_modules/
+lab/tools/_*
