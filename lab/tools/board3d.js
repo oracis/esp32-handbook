@@ -22,6 +22,12 @@ let drag = null, moved = false, pickables = [], groups = {}, materials = {};
 let glows = {}, raycaster = new Raycaster(), ndc = new Vector2();
 let cbPick = null, pwmLevel = -1, ready = false, fail = '';
 let ro = null;
+let peripheralGroup = null, peripherals = {};   // 工作台动态挂载的外设模块
+
+const PERI_COLOR = {
+  led: 0x4da6ff, rgb: 0xff6ad5, button: 0xf0a832, buzzer: 0xf0a832,
+  servo: 0xa78bfa, ultra: 0x2fc4b2, dht: 0x7ee787, oled: 0x79c0ff
+};
 
 function tex(text, opt){
   opt = opt || {};
@@ -252,6 +258,83 @@ function buildBoard(){
   scene.add(grid);
 }
 
+/* ---- 工作台：动态挂载的外设模块（不进 pickables，不影响 12 部件自检） ---- */
+const PERI_NAMES = { led:'LED', rgb:'RGB', button:'BTN', buzzer:'BUZ', servo:'SRV', ultra:'ULT', dht:'DHT', oled:'OLED' };
+function ensurePeripheralGroup(){
+  if (peripheralGroup) return peripheralGroup;
+  peripheralGroup = new Group();
+  peripheralGroup.name = 'peripherals';
+  scene.add(peripheralGroup);
+  return peripheralGroup;
+}
+/* id: 唯一键；type: led/rgb/button/buzzer/servo/ultra/dht/oled；pin: GPIO 号（仅丝印用） */
+function addPeripheral(id, type, pin){
+  if (!ready) return false;
+  const g = ensurePeripheralGroup();
+  if (peripherals[id]) removePeripheral(id);
+  const n = Object.keys(peripherals).length;
+  const col = n % 4, row = Math.floor(n / 4);
+  const x = -2.4 + col * 1.6, z = 2.7 + row * 1.15;
+  const grp = new Group();
+  const color = PERI_COLOR[type] || 0x9fb0c4;
+  // 底座
+  grp.add(new Mesh(new BoxGeometry(1.25, 0.12, 0.72), std(0x1b2530, { roughness: 0.78 })));
+  // 模块主体（按键/舵机/超声波用不同形状区分）
+  let body;
+  if (type === 'button'){
+    body = new Mesh(new CylinderGeometry(0.22, 0.22, 0.14, 20), std(0x2a3340, { metalness: 0.35 }));
+    body.position.y = 0.13;
+  } else if (type === 'servo'){
+    body = new Mesh(new BoxGeometry(0.42, 0.34, 0.26), std(0x2b3442, { roughness: 0.6 }));
+    body.position.y = 0.23;
+  } else if (type === 'ultra'){
+    body = new Mesh(new BoxGeometry(0.66, 0.30, 0.30), std(0x223044, { roughness: 0.66 }));
+    body.position.y = 0.21;
+  } else if (type === 'oled'){
+    body = new Mesh(new BoxGeometry(0.72, 0.10, 0.44), std(0x101820, { roughness: 0.4 }));
+    body.position.y = 0.11;
+  } else {
+    body = new Mesh(new BoxGeometry(0.40, 0.18, 0.40), std(0x243040, { roughness: 0.6 }));
+    body.position.y = 0.15;
+  }
+  grp.add(body);
+  // 状态灯 + 光晕
+  const mat = new MeshStandardMaterial({ color: color, emissive: new Color(color),
+    emissiveIntensity: 0.02, metalness: 0.1, roughness: 0.35 });
+  const dot = new Mesh(new SphereGeometry(0.088, 16, 12), mat);
+  dot.position.set(0.34, 0.17, -0.18); grp.add(dot);
+  const glowMat = new MeshBasicMaterial({ color: color, transparent: true, opacity: 0, depthWrite: false });
+  const glow = new Mesh(new SphereGeometry(0.17, 16, 12), glowMat);
+  glow.position.copy(dot.position); grp.add(glow);
+  // 丝印：类型 + 引脚
+  grp.add(silk((PERI_NAMES[type] || 'MOD') + '·G' + pin, 0, 0.51, 1.0, 0.15,
+               { size: 30, color: '#b9c8d6' }));
+  grp.position.set(x, 0, z);
+  g.add(grp);
+  peripherals[id] = { group: grp, mat: mat, glow: glowMat, color: color, type: type, pin: pin };
+  return true;
+}
+function setPeripheral(id, level){
+  const p = peripherals[id];
+  if (!p) return false;
+  const v = Math.max(0, Math.min(1, +level || 0));
+  p.mat.emissiveIntensity = 0.02 + 2.4 * v;
+  p.glow.opacity = 0.03 + 0.55 * v;
+  return true;
+}
+function removePeripheral(id){
+  const p = peripherals[id];
+  if (!p || !peripheralGroup) return false;
+  peripheralGroup.remove(p.group);
+  delete peripherals[id];
+  return true;
+}
+function clearPeripherals(){
+  if (!peripheralGroup) return;
+  Object.keys(peripherals).forEach(id => peripheralGroup.remove(peripherals[id].group));
+  peripherals = {};
+}
+
 function updateCamera(){
   const cp = Math.cos(pitch);
   camera.position.set(distance * Math.sin(yaw) * cp,
@@ -423,7 +506,7 @@ function resetView(){
 function stats(){
   return { ready: ready, fail: fail, renderer: !!renderer,
            webgl2: !!(renderer && renderer.capabilities && renderer.capabilities.isWebGL2),
-           meshes: pickables.length, parts: PARTS.length,
+           meshes: pickables.length, parts: PARTS.length, peripherals: Object.keys(peripherals).length,
            distance: +distance.toFixed(3), yaw: +yaw.toFixed(3), pitch: +pitch.toFixed(3),
            ledLevel: ready ? +materials.led.emissiveIntensity.toFixed(3) : 0,
            pwmLevel: pwmLevel };
@@ -437,6 +520,10 @@ window.Board3D = {
   pulse: pulse,
   pressBoot: pressBoot,
   clearAll: clearAll,
+  addPeripheral: addPeripheral,
+  setPeripheral: setPeripheral,
+  removePeripheral: removePeripheral,
+  clearPeripherals: clearPeripherals,
   zoom: zoom,
   resetView: resetView,
   onPick: function (cb){ cbPick = cb; },

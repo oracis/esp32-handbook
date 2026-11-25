@@ -92,6 +92,22 @@ CASES = {
         R["fn"] == "lesson_30.ino", R["station"] is True,
         R["upload"] is True, R["lines"] >= 5, R["running"] is True,
         "err" not in R)),
+    "e2e=wb":   dict(budget=9000, w=1440, h=900, expect=lambda R: (
+        R["modeWB"] is True, R["shelf"] == 8, R["examples"] == 5,
+        R["hasVM"] is True, R["running"] is True, R["btnDisabled"] is True,
+        R["onCount"] > 0, R["pinG2"] >= 0, R["steps"] > 10, R["pinsShown"] >= 1,
+        R["stopped"] is True, R["btnBack"] is True, R["noThrow"] is True,
+        R["errShown"] is True, R["backCourse"] is True, "err" not in R)),
+    "e2e=wb-serial": dict(budget=7000, w=1440, h=900, expect=lambda R: (
+        R["modeWB"] is True, R["lines"] >= 4, R["hi"] is True,
+        R["num3"] is True, R["backCourse"] is True, "err" not in R)),
+    "e2e=wb-step": dict(budget=7000, w=1440, h=900, expect=lambda R: (
+        R["modeWB"] is True, "单步" in R["stepStatus"] or "step" in R["stepStatus"],
+        R["pinShown"] >= 1, R["backCourse"] is True, "err" not in R)),
+    "e2e=wb-peri": dict(budget=7000, w=1440, h=900, expect=lambda R: (
+        R["modeWB"] is True, R["mounted"] is True, R["mountedCard"] == 1,
+        R["peri3d"] == 1, R["peri2"] == 2, R["periCleared"] == 0,
+        R["backCourse"] is True, "err" not in R)),
 }
 
 _cache = {}
