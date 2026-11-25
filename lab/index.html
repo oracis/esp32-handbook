@@ -14,8 +14,8 @@
   --sans:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%}
-body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;line-height:1.6;overflow:hidden}
+html,body{min-height:100%}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;line-height:1.6}
 button{font-family:inherit;cursor:pointer}
 ::-webkit-scrollbar{width:9px;height:9px}
 ::-webkit-scrollbar-thumb{background:#2c3646;border-radius:5px}
@@ -31,7 +31,7 @@ header{height:54px;display:flex;align-items:center;gap:14px;padding:0 18px;borde
 .pill{border:1px solid var(--line);border-radius:99px;padding:3px 11px;font-size:11px;color:var(--teal);font-family:var(--mono)}
 
 /* ---------- 三栏布局 ---------- */
-main{display:grid;grid-template-columns:210px minmax(0,1fr) 400px;height:calc(100% - 54px)}
+main{display:grid;grid-template-columns:210px minmax(0,1fr) 400px;height:calc(100vh - 54px)}
 aside{border-right:1px solid var(--line);background:var(--panel2);overflow-y:auto;padding:14px 12px}
 .grp{font-size:10.5px;font-family:var(--mono);letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin:6px 4px 9px}
 .lsn{display:block;width:100%;text-align:left;background:none;border:1px solid transparent;border-radius:9px;padding:9px 11px;color:var(--text2);font-size:13px;margin-bottom:5px;transition:.14s;position:relative}
@@ -136,6 +136,17 @@ aside{border-right:1px solid var(--line);background:var(--panel2);overflow-y:aut
 .on .ledCore{fill:#4da6ff}
 .on .ledGlow{opacity:.75}
 .on.chipBlink .chipBody{fill:#2fc4b2}
+
+/* ---------- 留言区 ---------- */
+#comments{border-top:1px solid var(--line);background:var(--panel2);padding:0 18px 28px}
+#cmBox{max-width:820px;margin:0 auto}
+#cmToggle{display:block;margin:0 auto 4px;background:var(--panel);border:1px solid var(--line);border-radius:99px;color:var(--text2);font-size:12.8px;padding:11px 24px;transition:.15s;position:relative;top:-22px}
+#cmToggle:hover{border-color:var(--teal);color:var(--teal)}
+#cmToggle.on{border-color:var(--teal);color:var(--teal)}
+#cmInner.hid{display:none}
+#cmNote{font-size:11.5px;color:var(--muted);text-align:center;margin-bottom:12px}
+#cmNote b{color:var(--text2)}
+.giscus{max-width:100%}
 
 /* ---------- 响应式 ---------- */
 @media(max-width:1080px){main{grid-template-columns:180px minmax(0,1fr) 340px}}
@@ -334,6 +345,17 @@ aside{border-right:1px solid var(--line);background:var(--panel2);overflow-y:aut
     </div>
   </section>
 </main>
+
+<!-- 留言区（Giscus · GitHub Discussions · 懒加载） -->
+<section id="comments">
+  <div id="cmBox">
+    <button id="cmToggle">💬 留言 / 反馈 · 点击展开</button>
+    <div id="cmInner" class="hid">
+      <div id="cmNote">用 <b>GitHub 账号</b>登录后评论，留言存在本仓库的 Discussions（General 区），公开可见。</div>
+      <div class="giscus"></div>
+    </div>
+  </div>
+</section>
 
 <script>
 "use strict";
@@ -643,6 +665,37 @@ if (location.search.indexOf("play") >= 0){
     }, 2600);
   }, 400);
 }
+/* ---------- 留言区懒加载（点击后才请求 giscus，不拖慢首屏） ---------- */
+(function(){
+  const tg = document.querySelector("#cmToggle"), inner = document.querySelector("#cmInner");
+  if (!tg) return;
+  tg.addEventListener("click", () => {
+    inner.classList.toggle("hid");
+    const open = !inner.classList.contains("hid");
+    tg.classList.toggle("on", open);
+    tg.textContent = open ? "💬 留言 / 反馈 · 点击收起" : "💬 留言 / 反馈 · 点击展开";
+    if (open && !inner.dataset.loaded){
+      inner.dataset.loaded = "1";
+      const sc = document.createElement("script");
+      sc.src = "https://giscus.app/client.js";
+      sc.async = true; sc.crossOrigin = "anonymous";
+      [["data-repo","oracis/esp32-handbook"],
+       ["data-repo-id","R_kgDOV5qkCg"],
+       ["data-category","General"],
+       ["data-category-id","DIC_kwDOV5qkCs4DL7AG"],
+       ["data-mapping","pathname"],
+       ["data-strict","0"],
+       ["data-reactions-enabled","1"],
+       ["data-emit-metadata","0"],
+       ["data-input-position","top"],
+       ["data-theme","dark_dimmed"],
+       ["data-lang","zh-CN"],
+       ["data-loading","lazy"]].forEach(([k,v]) => sc.setAttribute(k, v));
+      inner.appendChild(sc);
+    }
+  });
+})();
+
 /* e2e 场景自检：?e2e=<mode>，覆盖切课/运行/输入/弹窗/tabs/缩放 */
 if (new URLSearchParams(location.search).has("e2e")){
   const mode = new URLSearchParams(location.search).get("e2e");
@@ -689,6 +742,13 @@ if (new URLSearchParams(location.search).has("e2e")){
         document.querySelector('[data-tab="points"]').click();
         await sleep(60);
         R.points = document.querySelectorAll("#body li").length;
+      } else if (mode === "cm"){
+        document.querySelector("#cmToggle").click();
+        await sleep(400);
+        R.cmOpen = !document.querySelector("#cmInner").classList.contains("hid");
+        R.giscusScript = !!document.querySelector('#cmInner script[src*="giscus"]');
+        R.toggleText = document.querySelector("#cmToggle").textContent;
+        R.note = !!document.querySelector("#cmNote");
       } else if (mode === "zoom"){
         document.querySelector("#board").dispatchEvent(new WheelEvent("wheel", {deltaY: -240, bubbles: true, cancelable: true}));
         await sleep(60);
