@@ -34,7 +34,7 @@ LIVE_URL = "https://esp32.ydtgo.top/"
 
 SRC = SITE.read_text(encoding="utf-8")
 EXPECT_SECTIONS = ["ai", "chips", "env", "wizard", "path", "labs", "video",
-                   "cases", "code", "res", "buy", "pit", "gloss", "src"]
+                   "cases", "code", "res", "buy", "pit", "gloss"]
 
 CHROME_CANDIDATES = [
     r"C:\Program Files\Google\Chrome\Application\chrome.exe",
@@ -209,8 +209,11 @@ class TestI18NStatic(unittest.TestCase):
     def test_en_values_contain_no_cjk(self):
         def cjk(s):
             return re.search(r"[\u4e00-\u9fff]", s)
+        # LBWHOLE 里的 9 语言原生名列表（简体中文 · 繁體中文 · 日本語）是有意保留的
+        NATIVE = ("简体中文", "繁體中文", "日本語", "한국어")
         bad_t = [k for k, v in self.d["t"].items() if cjk(v)]
-        bad_b = [k for k, v in self.d["b"].items() if cjk(v)]
+        bad_b = [k for k, v in self.d["b"].items()
+                 if cjk(v) and not all(n in v for n in NATIVE)]
         self.assertEqual(bad_t, [], f"t 英文译文含中文: {bad_t[:5]}")
         self.assertEqual(bad_b, [], f"b 英文译文含中文: {bad_b[:5]}")
 
@@ -434,6 +437,88 @@ class TestLinks(unittest.TestCase):
             self.assertIn(h, hosts)
 
 
+class TestLabCatalog(unittest.TestCase):
+    """动手实验区必须是我们自己的 46 课目录：全站内链、零外链。"""
+
+    def setUp(self):
+        i = SRC.index('<section id="labs"')
+        j = SRC.index("</section>", i)
+        self.seg = SRC[i:j]
+
+    def test_card_count(self):
+        self.assertEqual(self.seg.count('class="lab-item"'), 46,
+                         "动手实验区卡片数不是 46")
+
+    def test_links_point_to_own_lab(self):
+        hrefs = re.findall(r'<a class="lab-item" href="([^"]+)"', self.seg)
+        bad = [h for h in hrefs if not re.match(r"^https://lab\.ydtgo\.top/#/lessons/\d{2}$", h)]
+        self.assertEqual(bad, [], f"存在非本站深链: {bad[:3]}")
+
+    def test_links_cover_all_lessons_in_order(self):
+        hrefs = re.findall(r'<a class="lab-item" href="([^"]+)"', self.seg)
+        nos = [h.rsplit("/", 1)[-1] for h in hrefs]
+        self.assertEqual(nos, ["%02d" % n for n in range(1, 47)])
+
+    def test_no_external_lab_site_anywhere(self):
+        """课程卡片零外链；esp-labs-web / pages.dev 全页零出现（署名区块已按需求删除）。"""
+        for token in ("esp-labs-web", "pages.dev"):
+            self.assertEqual(SRC.count(token), 0, f"页面仍含外部实验室引用 {token}")
+        # 实验区与课程卡片内不得出现任何外链
+        self.assertNotIn("esp-labs-web", self.seg)
+
+    def test_heading_mentions_46(self):
+        self.assertIn("46 个能跟着做的 ESP32 实验", self.seg)
+
+    def test_every_language_block_has_canonical_links(self):
+        """9 语言块的 LBWHOLE 里，46 个 href 必须与中文版一致（防机翻改坏 URL）。"""
+        lang_blocks = []
+        i18n = get_i18n()
+        if "LBWHOLE" in i18n.get("b", {}):
+            lang_blocks.append(("en", i18n["b"]["LBWHOLE"]))
+        multi = get_multi(i18n)
+        for lang, obj in (multi or {}).items():
+            blk = obj.get("b", {}).get("LBWHOLE")
+            if blk:
+                lang_blocks.append((lang, blk))
+        self.assertGreaterEqual(len(lang_blocks), 8, "语言块不足 8 个")
+        want = ["https://lab.ydtgo.top/#/lessons/%02d" % n for n in range(1, 47)]
+        bad = []
+        for lang, blk in lang_blocks:
+            got = re.findall(r'<a class="lab-item" href="([^"]+)"', blk)
+            if got != want:
+                bad.append(lang)
+        self.assertEqual(bad, [], f"这些语言的课程链接被改坏/缺失: {bad}")
+
+
+def get_multi(i18n=None):
+    """提取 window.I18N.MULTI（9 语言字典）；不存在时返回 None。"""
+    key = "window.I18N.MULTI = "
+    i = SRC.find(key)
+    if i < 0:
+        return None
+    i += len(key)
+    depth, in_str, esc = 0, False, False
+    for k in range(i, len(SRC)):
+        c = SRC[k]
+        if in_str:
+            if esc:
+                esc = False
+            elif c == "\\":
+                esc = True
+            elif c == '"':
+                in_str = False
+            continue
+        if c == '"':
+            in_str = True
+        elif c == "{":
+            depth += 1
+        elif c == "}":
+            depth -= 1
+            if depth == 0:
+                return json.loads(SRC[i:k + 1])
+    return None
+
+
 class TestHtmlSanity(unittest.TestCase):
     def test_tag_balance(self):
         p = parse_stack()
@@ -632,7 +717,7 @@ class TestRuntime(unittest.TestCase):
     def test_structure_runtime(self):
         self._skip_if_no_results()
         self.assertEqual(self.R["counts"].get("h1"), 1)
-        self.assertEqual(self.R["counts"].get("sections"), 14)
+        self.assertEqual(self.R["counts"].get("sections"), 13)
 
     def test_rv_reveal(self):
         """滚动显现：harness iframe 内 IO 在 headless 虚拟时间下不触发，

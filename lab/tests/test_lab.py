@@ -64,7 +64,7 @@ CASES = {
         R["fn"] == "lesson_6.ino", R["scanFound"] is True,
         R["ipFound"] is True, R["moduleOn"] is True, "err" not in R)),
     "e2e=m3":   dict(budget=5000, w=1440, h=900, expect=lambda R: (
-        R["count"] == 30, R["foot"] is True,
+        R["count"] == 46, R["foot"] is True,
         R["zh7"] == "I²C 传感器：两根线读温度",
         R["en7"] == "I²C sensor: read temperature on two wires",
         R["en10"] == "Deep sleep: the key to battery power",
@@ -72,22 +72,33 @@ CASES = {
     "e2e=i18n": dict(budget=4000, w=1440, h=900, expect=lambda R: (
         R["zhTitle"] == "认识开发板", "简体中文" in R["zhBtn"],
         R["enTitle"] == "Meet the dev board", "English" in R["enBtn"],
-        R["enTab"] == "Overview", R["enHead"] == "30 lessons",
+        R["enTab"] == "Overview", R["enHead"] == "46 lessons",
         R["backTitle"] == "认识开发板", R["backTab"] == "概述",
         R["saved"] == "zh", "err" not in R)),
     "e2e=cm":   dict(budget=4000, w=1440, h=900, expect=lambda R: (
         R["cmHidden"] is True, R["cmCodeKept"] is True,
         R["cmNoRequest"] is True, "err" not in R)),
     "e2e=m4":   dict(budget=6000, w=1440, h=900, expect=lambda R: (
-        R["count"] == 30, R["groups"] == 7,
+        R["count"] == 46, R["groups"] == 9,
         R["no11"] == "11", R["no30"] == "30",
         R["zh30"] == "综合项目：Wi-Fi 环境监测站",
         R["en11"] == "SPI display: driving ST7789",
         R["en30"] == "Capstone: Wi-Fi environment station",
-        R["enGroup"] == "Communication", R["enHead"] == "30 lessons",
+        R["enGroup"] == "Communication", R["enHead"] == "46 lessons",
         R["fn30"] == "lesson_30.ino", R["code30"] is True, "err" not in R)),
-    "e2e=all":  dict(budget=8000, w=1440, h=900, expect=lambda R: (
-        R["count"] == 30, R["bad"] == [], R["missing"] == [], "err" not in R)),
+    "e2e=m5":   dict(budget=7000, w=1440, h=900, expect=lambda R: (
+        R["count"] == 46, R["groups"] == 9, R["no31"] == "31", R["no46"] == "46",
+        R["head"] == "46 课", R["hasRfid"] is True, R["hasSound"] is True,
+        R["fn31"] == "lesson_31.ino", R["code31"] is True,
+        R["fn46"] == "lesson_46.ino", R["code46"] is True,
+        R["en46"] == "Voice effects: real-time pitch and echo",
+        "RFID" in R["enGroup"], "err" not in R)),
+    "e2e=route": dict(budget=7000, w=1440, h=900, expect=lambda R: (
+        R["title39"].startswith("39 ·"), R["hashAfter"] == "#/lessons/39",
+        R["title31en"].startswith("31 · RFID basics"),
+        R["lang31"] == "en", R["listMarked"] is True, "err" not in R)),
+    "e2e=all":  dict(budget=9000, w=1440, h=900, expect=lambda R: (
+        R["count"] == 46, R["bad"] == [], R["missing"] == [], "err" not in R)),
     "e2e=m4p":  dict(budget=9000, w=1440, h=900, expect=lambda R: (
         R["fn"] == "lesson_30.ino", R["station"] is True,
         R["upload"] is True, R["lines"] >= 5, R["running"] is True,
