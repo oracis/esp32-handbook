@@ -146,6 +146,11 @@ aside{border-right:1px solid var(--line);background:var(--panel2);overflow-y:aut
 #cmInner.hid{display:none}
 #cmNote{font-size:11.5px;color:var(--muted);text-align:center;margin-bottom:12px}
 #cmNote b{color:var(--text2)}
+#cmLoading{font-size:12.5px;color:var(--muted);text-align:center;padding:18px 0;font-family:var(--mono)}
+#cmFallback.hid,#cmLoading.hid{display:none}
+#cmFallback{border:1px solid rgba(240,168,50,.35);background:rgba(240,168,50,.06);border-radius:10px;padding:13px 16px;font-size:12.6px;color:var(--text2);line-height:1.75}
+#cmFallback b{color:var(--amber)}
+#cmFallback a{color:var(--teal);font-family:var(--mono);font-size:12px}
 .giscus{max-width:100%}
 
 /* ---------- 响应式 ---------- */
@@ -352,6 +357,12 @@ aside{border-right:1px solid var(--line);background:var(--panel2);overflow-y:aut
     <button id="cmToggle">💬 留言 / 反馈 · 点击展开</button>
     <div id="cmInner" class="hid">
       <div id="cmNote">用 <b>GitHub 账号</b>登录后评论，留言存在本仓库的 Discussions（General 区），公开可见。</div>
+      <div id="cmLoading" class="hid">留言区加载中（giscus.app）…</div>
+      <div id="cmFallback" class="hid">
+        <b>⚠️ 留言服务加载超时</b>——giscus.app 网络波动（大陆访问不稳定是常态）。两个选择：<br>
+        ① <a href="https://github.com/oracis/esp32-handbook/discussions" target="_blank" rel="noopener">直接到 GitHub Discussions 留言 ↗</a>（数据同一处，不掉留言）<br>
+        ② 点「收起」再展开重试，或刷新页面
+      </div>
       <div class="giscus"></div>
     </div>
   </div>
@@ -676,6 +687,7 @@ if (location.search.indexOf("play") >= 0){
     tg.textContent = open ? "💬 留言 / 反馈 · 点击收起" : "💬 留言 / 反馈 · 点击展开";
     if (open && !inner.dataset.loaded){
       inner.dataset.loaded = "1";
+      document.querySelector("#cmLoading").classList.remove("hid");
       const sc = document.createElement("script");
       sc.src = "https://giscus.app/client.js";
       sc.async = true; sc.crossOrigin = "anonymous";
@@ -692,6 +704,22 @@ if (location.search.indexOf("play") >= 0){
        ["data-lang","zh-CN"],
        ["data-loading","lazy"]].forEach(([k,v]) => sc.setAttribute(k, v));
       inner.appendChild(sc);
+      /* giscus 加载完成的标志：iframe opacity 0→1；超时没完成则给兜底（e2e 模式加速到 1.4s 便于自测） */
+      let tries = 0;
+      const iv = setInterval(() => {
+        tries++;
+        const gf = inner.querySelector("iframe");
+        if (gf && gf.style.opacity === "1"){
+          clearInterval(iv); inner.dataset.ready = "1";
+          document.querySelector("#cmLoading").classList.add("hid");
+        } else if (tries > (new URLSearchParams(location.search).has("e2e") ? 7 : 40)){
+          clearInterval(iv);
+          if (!inner.dataset.ready){
+            document.querySelector("#cmLoading").classList.add("hid");
+            document.querySelector("#cmFallback").classList.remove("hid");
+          }
+        }
+      }, 200);
     }
   });
 })();
@@ -744,11 +772,16 @@ if (new URLSearchParams(location.search).has("e2e")){
         R.points = document.querySelectorAll("#body li").length;
       } else if (mode === "cm"){
         document.querySelector("#cmToggle").click();
-        await sleep(400);
+        await sleep(2600);
         R.cmOpen = !document.querySelector("#cmInner").classList.contains("hid");
         R.giscusScript = !!document.querySelector('#cmInner script[src*="giscus"]');
         R.toggleText = document.querySelector("#cmToggle").textContent;
         R.note = !!document.querySelector("#cmNote");
+        R.ready = !!document.querySelector("#cmInner").dataset.ready;
+        R.fallback = !document.querySelector("#cmFallback").classList.contains("hid");
+        R.loadingHid = document.querySelector("#cmLoading").classList.contains("hid");
+        const gf = document.querySelector("#cmInner iframe");
+        R.iframe = gf ? [Math.round(gf.getBoundingClientRect().width), Math.round(gf.getBoundingClientRect().height)] : null;
       } else if (mode === "zoom"){
         document.querySelector("#board").dispatchEvent(new WheelEvent("wheel", {deltaY: -240, bubbles: true, cancelable: true}));
         await sleep(60);
