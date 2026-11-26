@@ -1,0 +1,138 @@
+{
+ "es": {
+  "SP2": {
+   "glm": "Este manual no contiene publicidad, no tiene barreras de registro ni bloqueos de cursos, y es organizado y mantenido por una persona. Si te ha ahorrado algunas noches de intentos y errores, ambas cosas se consideran un apoyo.",
+   "sage": "Este manual no tiene anuncios, ni muro de inicio de sesión, ni cursos bloqueados; lo recopila y mantiene una sola persona. Si te ha ahorrado unas cuantas noches de prueba y error, cualquiera de las dos cosas de abajo cuenta como apoyo."
+  },
+  "SP4": {
+   "glm": "No gasto, pero decido si la próxima persona que busque ESP32 puede encontrar aquí. Después de dar un Star, cada revisión también aparecerá en tu página de inicio de GitHub.",
+   "sage": "No cuesta dinero, pero decide si la próxima persona que busque ESP32 podrá encontrar este sitio. Después de pulsar Star, cada revisión también aparecerá en tu página de inicio de GitHub."
+  },
+  "SP7": {
+   "glm": "Los parámetros en la tabla no son correctos, los enlaces no funcionan o tus resultados de prueba son diferentes, dilo directamente. Cada comentario se convertirá en la próxima revisión.",
+   "sage": "Si los parámetros de la tabla son incorrectos, los enlaces no funcionan o tus resultados de prueba difieren, dímelo directamente. Cada comentario se convertirá en la próxima revisión."
+  },
+  "SP9": {
+   "glm": "<b>Más contenido</b> — Convertir más escenarios de ESP32 en experimentos con capacidad de clic y salto.",
+   "sage": "<b>Más contenido</b> — convertir más escenarios de ESP32 en experimentos en los que se puede hacer clic y que se pueden omitir."
+  },
+  "SP10": {
+   "glm": "<b>Site always online</b> - Domain, hosting, and compact size that can be accessed even on weak networks.",
+   "sage": "<b>El sitio siempre está en línea</b> — el dominio, el alojamiento y un peso que carga incluso con mala conexión."
+  },
+  "SP11": {
+   "glm": "Canal de donaciones aún no está abierto, cuando esté lo pondré aquí. Antes de eso, un Star o una pregunta específica es más útil que una donación.",
+   "sage": "El canal de donaciones aún no está abierto; cuando lo esté, se anunciará aquí. Hasta entonces, un Star o una pregunta concreta son más útiles que una donación."
+  },
+  "FT7": {
+   "glm": "Proyecto personal no oficial, sin relación de隶属 con Espressif; los parámetros eléctricos y los nombres de los modelos se deben ajustar al datasheet oficial.",
+   "sage": "Proyecto personal no oficial, sin afiliación con Espressif; los parámetros eléctricos y la denominación de los modelos se rigen por el datasheet oficial."
+  },
+  "FT8": {
+   "glm": "El board cambiará, pero los criterios no: primero pregunte \"¿con qué se va a conectar?\" y luego \"¿cuán rápido debe ser?\"",
+   "sage": "Las placas cambiarán, el criterio no: primero pregúntate «¿qué necesitas conectar?» y después «¿a qué velocidad?»."
+  }
+ },
+ "pt": {
+  "SP2": {
+   "glm": "Este manual não possui anúncios, não há parede de login nem travas de curso, mantido por uma pessoa. Se ele lhe economizou algumas noites de tentativas e erros, ambas as coisas contam como apoio.",
+   "sage": "Este manual não tem anúncios, nem login obrigatório, nem conteúdo bloqueado por cursos; é organizado e mantido por uma única pessoa. Se ele te poupou algumas noites de tentativa e erro, as duas coisas abaixo contam como apoio."
+  },
+  "SP4": {
+   "glm": "Grátis, mas decide se a próxima pessoa que procurar ESP32 vai encontrar aqui. Após clicar em Star, cada revisão também aparecerá na sua página inicial do GitHub.",
+   "sage": "Não custa nada, mas decide se a próxima pessoa que pesquisar por ESP32 conseguirá encontrar este lugar. Depois de clicar em Star, cada revisão também aparecerá na sua página inicial do GitHub."
+  },
+  "SP7": {
+   "glm": "Se os parâmetros na tabela estão incorretos, os links estão inativos ou seus resultados de medição são diferentes, diga diretamente. Cada feedback se tornará a próxima revisão.",
+   "sage": "Se os parâmetros da tabela estiverem incorretos, os links estiverem quebrados ou seus resultados de teste prático forem diferentes, diga diretamente. Cada feedback se tornará a próxima revisão."
+  },
+  "SP9": {
+   "glm": "<b>Mais conteúdo</b> — Transformar mais cenários do ESP32 em experimentos que podem ser clicados e saltados.",
+   "sage": "<b>Mais conteúdo</b> — transformar mais cenários de ESP32 em experimentos clicáveis e que podem ser pulados."
+  },
+  "SP10": {
+   "glm": "<b>Site always online</b> - Domain, hosting, and compact size that can be accessed even on weak networks.",
+   "sage": "<b>O site está sempre online</b> — domínio, hospedagem e um tamanho que abre mesmo com internet fraca"
+  },
+  "SP11": {
+   "glm": "Canais de doação ainda não estão abertos, mas estarão aqui quando estiverem. Até lá, um Star ou uma pergunta específica são mais úteis do que uma doação.",
+   "sage": "O canal de doações ainda não está aberto; quando abrir, será divulgado aqui. Até lá, um Star ou uma pergunta específica é mais útil do que uma doação."
+  },
+  "FT7": {
+   "glm": "Projeto pessoal não-oficial, sem vínculo com a Espressif; os parâmetros elétricos e nomes dos modelos devem seguir o datasheet oficial.",
+   "sage": "Projeto pessoal não oficial, sem afiliação com a Espressif; para parâmetros elétricos e nomenclatura de modelos, prevalece o datasheet oficial."
+  },
+  "FT8": {
+   "glm": "O board pode mudar, mas o critério não muda: primeiro pergunte \"o que você quer conectar\" e depois \"quão rápido você precisa\".",
+   "sage": "As placas mudam, os critérios não: primeiro pergunte «o que conectar», depois pergunte «quão rápido»."
+  }
+ },
+ "fr": {
+  "SP2": {
+   "glm": "Ce manuel ne contient pas d'annonces, pas de mur de connexion et pas de verrouillage de cours, il est mis en ordre et entretenu par une seule personne. Si il vous a économisé quelques soirs de tentatives et d'erreurs, les deux choses suivantes sont considérées comme un soutien.",
+   "sage": "Ce manuel n'a ni publicité, ni mur de connexion, ni cours verrouillés ; il est compilé et maintenu par une seule personne. S'il vous a épargné quelques soirées d'essais et d'erreurs, les deux gestes ci-dessous comptent comme un soutien."
+  },
+  "SP4": {
+   "glm": "Gratuit, mais décide si la prochaine personne qui recherche ESP32 peut trouver ici. Après avoir cliqué sur Star, chaque mise à jour apparaîtra également sur votre page d'accueil GitHub.",
+   "sage": "C'est gratuit, mais cela détermine si la prochaine personne qui cherchera ESP32 pourra trouver ce site. Après avoir cliqué sur Star, chaque révision apparaîtra aussi sur votre page d'accueil GitHub."
+  },
+  "SP7": {
+   "glm": "Les paramètres du tableau ne sont pas corrects, les liens ne fonctionnent pas ou vos résultats de test sont différents, dites-le directement. Chaque retour deviendra une prochaine révision.",
+   "sage": "Si les paramètres du tableau sont erronés, qu'un lien ne fonctionne plus ou que vos résultats de test diffèrent, dites-le directement. Chaque retour contribuera à la prochaine révision."
+  },
+  "SP9": {
+   "glm": "<b>More content</b> - Turn more ESP32 scenarios into clickable, skippable experiments.",
+   "sage": "<b>Plus de contenu</b> — transformer davantage de scénarios ESP32 en expériences cliquables et que l'on peut passer."
+  },
+  "SP10": {
+   "glm": "<b>Site always online</b> - Domaine, hosting, and compact size that can be accessed even on weak networks.",
+   "sage": "<b>Le site reste toujours en ligne</b> — nom de domaine, hébergement, et un poids qui se charge même avec une connexion faible."
+  },
+  "SP11": {
+   "glm": "Le canal de dons n'est pas encore ouvert, il sera affiché ici une fois ouvert. Avant cela, un Star ou une question spécifique est plus utile que le don.",
+   "sage": "Le canal de dons n'est pas encore ouvert ; il sera affiché ici dès qu'il le sera. En attendant, un Star ou une question concrète est plus utile qu'un don."
+  },
+  "FT7": {
+   "glm": "Projet personnel non officiel, sans affiliation avec Espressif ; les paramètres électriques et les noms de modèle doivent suivre les datasheets officielles.",
+   "sage": "Projet personnel non officiel, sans affiliation avec Espressif ; pour les paramètres électriques et la nomenclature des modèles, seul le datasheet officiel fait foi"
+  },
+  "FT8": {
+   "glm": "Le board change, mais les critères restent inchangés : d'abord demander \"avec quoi vous voulez vous connecter\", puis \"à quelle vitesse\".",
+   "sage": "Les cartes changent, les critères restent : demandez d'abord « qu'allez-vous connecter », puis « à quelle vitesse »."
+  }
+ },
+ "ru": {
+  "SP2": {
+   "glm": "Этот руководствo не содержит рекламы, барьеров для входа и блокировок курсов, его собирает и обслуживает один человек. Если это помогло вам сэкономить несколько ночей на пробах и ошибках, обе следующие вещи считаются поддержкой.",
+   "sage": "В этом руководстве нет рекламы, нет обязательной регистрации и нет закрытых курсов — оно собрано и поддерживается одним человеком. Если оно сэкономило вам несколько вечеров проб и ошибок, то любое из двух действий ниже станет поддержкой."
+  },
+  "SP4": {
+   "glm": "Бесплатно, но решает,能不能找到这里 следующий, кто ищет ESP32. После того как поставите Star, каждая версия также будет出现在 вашей首页е GitHub.",
+   "sage": "Это бесплатно, но от этого зависит, сможет ли следующий человек, который ищет ESP32, найти этот сайт. После того как вы поставите Star, каждое обновление будет появляться и на вашей главной странице GitHub."
+  },
+  "SP7": {
+   "glm": "Если параметры в таблице не соответствуют, ссылка не работает или ваши измеренные результаты отличаются, просто скажите. Каждое обратное сообщение станет частью следующего обновления.",
+   "sage": "Если параметры в таблице неверны, ссылки не работают или ваши результаты измерений отличаются — говорите прямо. Каждый отзыв ляжет в основу следующей редакции."
+  },
+  "SP9": {
+   "glm": "<b>Больше контента</b> — создать больше экспериментов с ESP32, которые можно нажимать и пропускать.",
+   "sage": "<b>Больше материалов</b> — превращаем больше сценариев с ESP32 в эксперименты, которые можно запустить кликом и пропустить."
+  },
+  "SP10": {
+   "glm": "<b>Сайт всегда онлайн</b> — домен, хостинг и размер, который можно открыть даже при слабом интернете.",
+   "sage": "<b>Сайт всегда онлайн</b> — домен, хостинг и размер, позволяющий открывать его даже при слабом интернете."
+  },
+  "SP11": {
+   "glm": "Канал для донатов еще не открыт, но как только он откроется, я добавлю его здесь. До этого времени, один Star или конкретный вопрос будет полезнее, чем донат.",
+   "sage": "Канал для донатов пока не открыт, когда откроется — ссылка появится здесь. А пока один Star или конкретный вопрос полезнее доната."
+  },
+  "FT7": {
+   "glm": "Ненавязчивый личный проект, не связанный с Espressif; электрические параметры и наименование моделей должны соответствовать официальному datasheet.",
+   "sage": "Неофициальный личный проект, не связанный с Espressif; электрические параметры и наименования моделей уточняйте в официальном datasheet."
+  },
+  "FT8": {
+   "glm": "Плата может меняться, но критерии остаются: сперва спросите \"с чем нужно соединиться\", затем \"сколько нужно скорости\".",
+   "sage": "Платы меняются, критерии остаются прежними: сначала спрашиваем «что нужно подключить», потом «какая нужна скорость»."
+  }
+ }
+}
